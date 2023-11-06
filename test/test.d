@@ -139,6 +139,7 @@ extern(C) void main(int argc, char** argv) {
     vectorInfo(&v);
     printf("\n");
 
+    set!int s;
 
     printf("Ending tests\n");
 }
