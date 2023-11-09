@@ -5,7 +5,8 @@ Most of functionality is taken directly from cpp's std::vector with minor change
 +/
 module cppd.vector;
 
-import core.stdc.stdlib: free, malloc, calloc, realloc;
+// import core.stdc.stdlib: free, malloc, calloc, realloc;
+import core.stdc.string: memcpy;
 
 import cppd.allocator;
 import cppd.betterc;
@@ -14,9 +15,9 @@ import cppd.betterc;
 alias vector = CppVector;
 
 /// Ditto
-private struct CppVector(T, A = allocator!T) {
+private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     private T* _data = null;
-    private A _allocator;
+    private A _allocator = null;
 
     size_t _capacity = 0;
     size_t _size = 0;
@@ -39,6 +40,8 @@ private struct CppVector(T, A = allocator!T) {
     /// Returns first element or `T.init` if `size == 0`
     @property T front() { return _size == 0 ? T.init : _data[0]; }
 
+    // @disable this();
+
     /++
     Constructs new vector with data
     Example:
@@ -53,7 +56,7 @@ private struct CppVector(T, A = allocator!T) {
         reserve(p_data.length);
         _size = p_data.length;
         _capacity = p_data.length;
-        for (int i = 0; i < p_data.length; ++i) _data[i] = p_data[i];
+        memcpy(_data, p_data.ptr, p_data.length * T.sizeof);
     }
 
     /// Ditto
@@ -62,7 +65,7 @@ private struct CppVector(T, A = allocator!T) {
         reserve(S);
         _size = S;
         _capacity = S;
-        for (int i = 0; i < S; ++i) _data[i] = p_data[i];
+        memcpy(_data, p_data.ptr, p_data.length * T.sizeof);
     }
 
     /// Ditto
@@ -73,20 +76,17 @@ private struct CppVector(T, A = allocator!T) {
         reserve(S1 + S2 - 1);
         _size = S1 + S2 - 1;
         _capacity = S1 + S2 - 1;
-        for (size_t i = 0; i < S1; ++i) _data[i] = p_data1[i];
-        for (size_t i = S1; i < S2; ++i) _data[i] = p_data2[i];
+        memcpy(_data, p_data1.ptr, S1 * T.sizeof);
+        memcpy(&_data[S1], p_data2.ptr, S2 * T.sizeof);
     }
 
-    ~this() {
-        free();
-        _free(_allocator);
-    }
+    ~this() { free(); }
 
     /// Assigns new data to vector
     void opAssign(size_t S)( T[S] p_data ) {
         clear();
         reserve(S);
-        for (int i = 0; i < S; ++i) _data[i] = p_data[i];
+        memcpy(_data, p_data.ptr, S * T.sizeof);
         _size = S;
     }
     /// Ditto
@@ -109,13 +109,14 @@ private struct CppVector(T, A = allocator!T) {
         resize(p_size);
         _size = p_size;
         _capacity = p_size;
-        for (int i = 0; i < p_size; ++i) _data[i] = p_data[i];
+        memcpy(_data, p_data, p_size * T.sizeof);
     }
 
     /// Allocates memory for `p_size` elements if `p_size > capacity`
     /// Returns true on success
     bool reserve(size_t p_size) {
         if (p_size <= _capacity) return true;
+        if (_allocator is null) _allocator = _new!A();
 
         void* newData;
 
@@ -136,6 +137,7 @@ private struct CppVector(T, A = allocator!T) {
     /// Resizes vector to `p_size` and assigns `p_val` to new elements if `p_size > size`
     /// Returns true on success
     bool resize(size_t p_size, const T p_val = T.init) {
+        if (_allocator is null) _allocator = _new!A();
         void* newData;
 
         if (_data is null) {
@@ -158,9 +160,9 @@ private struct CppVector(T, A = allocator!T) {
     }
 
     /// Pushes new element to the end of vector.
-    /// If `newSize + 1 >= capacity` then it will `reserve((capacity + 1) * 2)`
+    /// If `newSize + 1 >= capacity` then it will `reserve(capacity * 2 + 2)`
     void push(T val) {
-        if (_size >= _capacity) reserve((_capacity + 1) * 2);
+        if (_size >= _capacity) reserve(_capacity * 2 + 2);
         _data[_size] = val;
         ++_size;
     }
@@ -171,20 +173,24 @@ private struct CppVector(T, A = allocator!T) {
     }
 
     /// Pushes new element to beginning of vector.
-    /// If `newSize + 1 >= capacity` then it will `reserve((capacity + 1) * 2)`
+    /// If `newSize + 1 > capacity` then it will `reserve(capacity * 2 + 2)`
     void pushFront(T val) {
         if (_size >= _capacity) reserve((_capacity + 1) * 2);
-        for (size_t i = _size; i > 0; --i) _data[i] = _data[i - 1];
+        // for (size_t i = _size; i > 0; --i) _data[i] = _data[i - 1];
+        memcpy(&_data[1], _data, _size * T.sizeof);
         _data[0] = val;
         ++_size;
     }
 
-    /// Ditto
-    void pushFront(T[] val) {
-        if (_size + val.length >= _capacity) reserve(_capacity + val.length + 2);
-        for (size_t i = _size; i > 0; --i) _data[i + val.length - 1] = _data[i - 1];
-        for (size_t i = 0; i < val.length; ++i) _data[i] = val[i];
-        _size += val.length;
+    /// Pushes new elements to beginning of vector.
+    /// If `newSize > capacity` then it will `reserve(capacity * 2 + newSize + 2)`
+    void pushFront(T[] vals...) {
+        if (_size + vals.length >= _capacity) reserve(_capacity * 2 + vals.length + 2);
+        memcpy(&_data[vals.length], _data, _size * T.sizeof);
+        memcpy(_data, vals.ptr, vals.length * T.sizeof);
+        // for (size_t i= _size; i > 0; --i) _data[i + val.length - 1] = _data[i - 1];
+        // for (size_t i = 0; i < val.length; ++i) _data[i] = val[i];
+        _size += vals.length;
     }
 
     /// Removes element at `pos`
@@ -212,10 +218,11 @@ private struct CppVector(T, A = allocator!T) {
     /// Returns true if was successful
     bool shrink() {
         if (_size == _capacity) return true;
+        if (_allocator is null) _allocator = _new!A();
 
         if (_data !is null) {
             void* newData;
-            newData = realloc(_data, _size * T.sizeof);
+            newData = _allocator.reallocate(_data, _size * T.sizeof);
             if (newData is null) return false;
             _data = cast(T*) newData;
             _capacity = _size;
@@ -264,21 +271,35 @@ private struct CppVector(T, A = allocator!T) {
 
     /// Destroys vector data and sets size to 0
     void clear() {
+        if (_allocator is null) _allocator = _new!A();
         void* newData = _allocator.allocate(_capacity * T.sizeof);
         if (newData is null) return;
 
-        free();
+        if (_data !is null) {
+            freeData();
+            _allocator.deallocate(_data);
+        }
+
         _data = cast(T*) newData;
         _size = 0;
     }
 
     /// Destroys vector data without allocating new memory
     void free() {
+        if (_allocator is null) _allocator = _new!A();
         if (_data !is null) {
+            freeData();
             _allocator.deallocate(_data);
         }
+        if (_allocator !is null) _allocator._free();
         _data = null;
         _size = 0;
         _capacity = 0;
+    }
+
+    private void freeData() {
+        if (_data !is null) {
+            for (size_t i = 0; i < _size; ++i) destroy!false(_data[i]);
+        }
     }
 }

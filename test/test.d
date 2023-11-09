@@ -20,15 +20,6 @@ extern(C++) class CppClassSecond: CppClass {
     bool e = true;
 }
 
-void vectorInfo(T)(vector!T* vec) {
-    printf("vector.capacity = %i\n", vec.capacity);
-    printf("vector.size     = %i\n", vec.size);
-    printf("vector.data     = ");
-    for (int i = 0; i < vec.size; ++i) { printf("%i ", vec.data()[i]); }
-    printf("\n");
-
-}
-
 extern(C) void main(int argc, char** argv) {
     printf("Starting tests\n\n");
 
@@ -139,7 +130,58 @@ extern(C) void main(int argc, char** argv) {
     vectorInfo(&v);
     printf("\n");
 
-    set!int s;
+    optional!int opt;
+    printf("optional() - %s %i\n", opt.hasValue.asString.ptr, opt.value);
+    opt = optional!int(null);
+    printf("optional(null) - %s %i\n", opt.hasValue.asString.ptr, opt.value);
+    opt = optional!int(20);
+    printf("optional(int) - %s %i\n", opt.hasValue.asString.ptr, opt.value);
+
+    bool revFunc(int a, int b) {return a < b;}
+    printf("\n");
+    set!(int, revFunc) s;
+    setInfo(s.data, s.size);
+    printf("Assigning set [6, 5, 4, 3, 2, 1]\n");
+    s ~= arr;
+    setInfo(s.data, s.size);
+    printf("Adding [1, 12, 4, 5, 61, 2]\n");
+    s.insert(1, 12, 4, 5, 61, 2);
+    setInfo(s.data, s.size);
+
+    import core.stdc.string: strcmp;
+
+    set!(char*) s2;
+    printf("Assigning set [abcd, cbda, dcba, add, remove]\n");
+    s2.insert(cast(char*)"abcd".ptr,
+              cast(char*)"cbda".ptr,
+              cast(char*)"dcba".ptr,
+              cast(char*)"add".ptr,
+              cast(char*)"remove".ptr);
+    setstrInfo(s2.data, s2.size);
 
     printf("Ending tests\n");
+}
+
+void setInfo(T)(T* _data, size_t size ){
+    printf("set.data        = ");
+    for (int i = 0; i < size; ++i) { printf("%i ", _data[i]); }
+    printf("\n");
+}
+
+void setstrInfo(T)(T* _data, size_t size ){
+    printf("set.data        = ");
+    for (int i = 0; i < size; ++i) { printf("%s ", _data[i]); }
+    printf("\n");
+}
+
+void vectorInfo(T)(vector!T* vec) {
+    printf("vector.capacity = %i\n", vec.capacity);
+    printf("vector.size     = %i\n", vec.size);
+    printf("vector.data     = ");
+    for (int i = 0; i < vec.size; ++i) { printf("%i ", vec.data()[i]); }
+    printf("\n");
+}
+
+immutable(char)[] asString(bool val) {
+    return val ? "true" : "false";
 }
