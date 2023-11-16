@@ -1,5 +1,5 @@
 /// Module containing utils to work with betterC
-module cppd.betterc;
+module cppd.classes;
 
 /++
 Used to allocate/deallocate memory for C++ classes
@@ -76,3 +76,20 @@ void classFree(T)(ref T t) {
 /// Ditto
 alias _free = classFree;
 
+/++
+Static casting done pretty. It's a known dlang bug 21690 where you can't dynamic cast
+c++ classes. This function fixes that.
+
+Example:
+---
+(cast(Base) child).baseFunc(); // will segfault
+(cast(Base) cast(void*) child).baseFunc(); // will work
+_cast!Base(child).baseFunc(); // will also work but easier to read
+someFunc( child._cast!Base ); // or alternative like that
+---
++/
+T staticCast(T, F)(ref F t) {
+    return ( cast(T) cast(void*) t);
+}
+
+alias _cast = staticCast;

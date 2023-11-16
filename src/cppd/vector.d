@@ -9,7 +9,7 @@ module cppd.vector;
 import core.stdc.string: memcpy;
 
 import cppd.allocator;
-import cppd.betterc;
+import cppd.classes;
 
 /// betterC compatible dynamic size container
 alias vector = CppVector;

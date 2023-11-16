@@ -2,22 +2,71 @@ import cppd;
 
 import core.stdc.stdio;
 
-extern(C++) class CppClass {
-    this(int p_a, char* p_b) {
-        a = p_a;
-        b = p_b;
+extern(C++) {
+
+    class CppClass {
+        this(int p_a, char* p_b) {
+            a = p_a;
+            b = p_b;
+        }
+
+        int a;
+        char* b;
+        bool c = true;
+
+        int get() { return a; }
     }
 
-    int a;
-    char* b;
-    bool c = true;
+    class CppClassSecond: CppClass {
+        this() { super(2, cast(char*) "a".ptr); }
+        bool e = true;
+    }
 
-    void get() {}
+    interface L {
+        void testLFunc();
+    }
+
+    class Base: L {
+        this() {
+            puts("base construct");
+        }
+
+        override void testLFunc() {
+            puts("call override function");
+        }
+
+        void testBaseFunc() {
+            puts("call Base function");
+        }
+
+        ~this() {
+            puts("base close");
+        }
+    }
+
+    class Test: Base {
+        int i;
+        int y;
+
+        this(int i, int y) {
+            this.i= i;
+            this.y = y;
+        }
+
+        ~this() {
+            puts("hello world");
+        }
+    }
+
 }
 
-extern(C++) class CppClassSecond: CppClass {
-    this() { super(2, cast(char*) "a".ptr); }
-    bool e = true;
+void testLFunc(L base) {
+    base.testLFunc();
+}
+
+/// Does not work
+void testLCase(L base) {
+    _cast!L(base).testLFunc();
 }
 
 extern(C) void main(int argc, char** argv) {
@@ -25,11 +74,23 @@ extern(C) void main(int argc, char** argv) {
 
     printf("Testing extern(C++) class\n");
     CppClass cppClass = _new!CppClass(2, cast(char*) "Hello world".ptr);
-    scope(exit) _free(cppClass);
+    CppClassSecond cppClassSecond = _new!CppClassSecond();
 
-    printf("%s, %i, %i\n", cppClass.b, cppClass.a, cppClass.c);
+    printf("%s, %i, %i, %i\n", cppClass.b, cppClass.a, cppClass.c, cppClassSecond.get());
 
     _free(cppClass);
+    _free(cppClassSecond);
+    printf("\n");
+
+    Test t = _new!Test(20, 40);
+    printf("t.i is => %d\n", t.i);
+    t.testLFunc();
+    (cast(L) cast(void*) t).testLFunc();
+    _cast!L(t).testLFunc();
+    testLFunc(t._cast!L);
+    t._cast!L().testLCase();
+    // testLCase(t);
+    _free(t);
     printf("\n");
 
     printf("Initializing vector!int\n");

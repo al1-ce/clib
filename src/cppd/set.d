@@ -4,7 +4,7 @@ betterC compatible associative container that contains a sorted set of unique ob
 module cppd.set;
 
 import cppd.allocator;
-import cppd.betterc;
+import cppd.classes;
 
 /++
 Unique value container.
