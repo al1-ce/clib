@@ -1,5 +1,5 @@
 name "cppd"
-description "c++ stdlib and utils for D with betterC"
+description "c++ stdlib and utils for D with betterC or nogc"
 authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
 license "GPL-3.0"

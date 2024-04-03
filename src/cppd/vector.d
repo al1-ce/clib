@@ -82,6 +82,9 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     ~this() { free(); }
 
+    /// Length of vector
+    size_t opDollar() const { return _size; }
+
     /// Assigns new data to vector
     void opAssign(size_t S)( T[S] p_data ) {
         clear();
@@ -103,6 +106,11 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     T opIndex(size_t p_position) { return _data[p_position]; }
     /// Ditto
     T* opIndex() { return _data; }
+
+    /// Returns slice
+    T[] opSlice(size_t start, size_t end) {
+        return _data[start .. end];
+    }
 
     /// Assigns new data to vector with size and capacity set to `p_size`
     void assign( T* p_data, size_t p_size ) {

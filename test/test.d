@@ -220,6 +220,14 @@ extern(C) void main(int argc, char** argv) {
               cast(char*)"remove".ptr);
     setstrInfo(s2.data, s2.size);
 
+    printf("\n");
+    printf("v[1..$] = 3 2");
+    vector!int vz = v[1..$];
+    vectorInfo(&vz);
+    printf("slice len - %d\n", v[1..$].length);
+    int[2] iarr = v[1..$];
+    printf("\n");
+
     printf("Ending tests\n");
 }
 
