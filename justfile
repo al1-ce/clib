@@ -14,10 +14,10 @@ run:
     dub run :test
 
 test: build_test
-    valgrind ./bin/cppd_test
+    valgrind ./bin/cpp_test
 
 test_full: build_test
-    valgrind --leak-check=full ./bin/cppd_test
+    valgrind --leak-check=full ./bin/cpp_test
 
 # Cheatsheet:
 # Set a variable (variable case is arbitrary)

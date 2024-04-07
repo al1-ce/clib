@@ -1,9 +1,9 @@
 /++
-A simple allocator. Allows for custom custom allocators to be used with some cppd types.
+A simple allocator. Allows for custom custom allocators to be used with some cpp types.
 
 All allocators must have same `signature` as CppAllocatorUnmanaged
 +/
-module cppd.allocator;
+module cpp.allocator;
 
 import core.stdc.stdlib: malloc, realloc, free;
 

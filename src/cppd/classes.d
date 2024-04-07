@@ -1,5 +1,5 @@
 /// Module containing utils to work with betterC
-module cppd.classes;
+module cpp.classes;
 
 /++
 Used to allocate/deallocate memory for C++ classes

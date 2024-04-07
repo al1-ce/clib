@@ -1,5 +1,5 @@
 /// TypeInfo betterC alternative (WIP)
-module cppd.typeinfo;
+module cpp.typeinfo;
 
 private struct CppTypeInfo(T) {
     const(char*) name();

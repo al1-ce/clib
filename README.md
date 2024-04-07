@@ -1,4 +1,4 @@
-# cppd
+# cpp
 c++ stdlib and utils for D with betterC
 
 ## Modules (mostly from c++ std) and why
@@ -9,7 +9,7 @@ c++ stdlib and utils for D with betterC
 - vector (std::vector) - Because apparently D arrays are very much relying on GC, for example you wouldn't be able to go about and @nogc array.reserve(size) because it suddenly needs TypeInfo!
 
 ## Other
-Modules that are copied from c++ STL are close to what you'd have in c++, meaning you'd usually will be able to translate c++ code to D + cppd code without any problem
+Modules that are copied from c++ STL are close to what you'd have in c++, meaning you'd usually will be able to translate c++ code to D + cpp code without any problem
 
 ## On classes
 D's keyword `new` can't be used with -betterC since it uses TypeInfo and to "fix" that there's a module named `classes`. As of now it contains three functions: `_new`, `_free` and `_cast` which can be used to use classes with -betterC
@@ -30,9 +30,9 @@ _free(c);
 c._free();
 ```
 
-`cppd.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
+`cpp.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
 ```d
-import cppd.typecast;
+import cpp.typecast;
 reinterpretCast!ICpp(t).icppFunc();
 somefunc( t.reinterpretCast!ICpp );
 ```

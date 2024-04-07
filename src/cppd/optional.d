@@ -1,7 +1,7 @@
 /++
 Simple alternative to std.typecons: Nullable
 +/
-module cppd.optional;
+module cpp.optional;
 
 import core.stdc.stddef: nullptr_t;
 

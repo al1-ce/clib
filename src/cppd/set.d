@@ -1,10 +1,10 @@
 /++
 betterC compatible associative container that contains a sorted set of unique objects
 +/
-module cppd.set;
+module cpp.set;
 
-import cppd.allocator;
-import cppd.classes;
+import cpp.allocator;
+import cpp.classes;
 
 /++
 Unique value container.

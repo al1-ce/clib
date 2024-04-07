@@ -3,13 +3,13 @@ betterC compatible dynamic size container.
 
 Most of functionality is taken directly from cpp's std::vector with minor changes
 +/
-module cppd.vector;
+module cpp.vector;
 
 // import core.stdc.stdlib: free, malloc, calloc, realloc;
 import core.stdc.string: memcpy;
 
-import cppd.allocator;
-import cppd.classes;
+import cpp.allocator;
+import cpp.classes;
 
 /// betterC compatible dynamic size container
 alias vector = CppVector;
