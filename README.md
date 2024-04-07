@@ -30,22 +30,23 @@ _free(c);
 c._free();
 ```
 
-`_cast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a static cast (`cast(T) cast(void*) t`)
+`cppd.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
 ```d
-_cast!ICpp(t).icppFunc();
-somefunc( t.cast!ICpp );
+import cppd.typecast;
+reinterpretCast!ICpp(t).icppFunc();
+somefunc( t.reinterpretCast!ICpp );
 ```
 
 It is important to know that -betterC places a lot of contraints. Most important ones are `new` keyword and no dynamic casts. `new` can be easily replaced with `_new!`, but for dynamic casts you have to work around it unless `#21690` will be fixed
 ```d
 void testBaseFunc(ICpp base) {
     base.baseFunc();
-    _cast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
+    reinterpretCast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
 }
 
 testBaseFunc(c); // will case segfault!!!
-testBaseFunc(_cast!ICpp(base)); // must be a static cast
-_cast!ICpp(base).testBaseFunc(); // or treat it as member
+testBaseFunc(reinterpretCast!ICpp(base)); // must be a reinterpret cast
+reinterpretCast!ICpp(base).testBaseFunc(); // or treat it as member
 ```
 
 ## C++ STL implementation list

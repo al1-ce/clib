@@ -1,10 +1,40 @@
 module cppd;
 
-public import cppd.classes;
-public import cppd.allocator;
-public import cppd.vector;
-public import cppd.set;
-public import cppd.optional;
-
-
-
+public import
+    // cppd.algorithm,
+    cppd.allocator, // replace with cppd.memory later
+    // cppd.bitset,
+    cppd.classes,
+    // cppd.complex,
+    // cppd.deque,
+    // cppd.exception,
+    // cppd.fstream,
+    // cppd.functional,
+    // cppd.iomanip,
+    // cppd.ios,
+    // cppd.iosfwd,
+    // cppd.iostream,
+    // cppd.iterator,
+    // cppd.limits,
+    // cppd.list,
+    // cppd.locale,
+    // cppd.map,
+    // cppd.memory,
+    // cppd.new_,
+    // cppd.numeric,
+    cppd.optional,
+    // cppd.ostream,
+    // cppd.queue,
+    cppd.set,
+    // cppd.sstream,
+    // cppd.stack,
+    // cppd.stdexcept,
+    // cppd.streambuf,
+    // cppd.string_,
+    // cppd.strstream,
+    cppd.typecast,
+    // cppd.typeinfo,
+    // cppd.utility,
+    // cppd.valarray
+    cppd.vector
+    ;

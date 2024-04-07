@@ -19,7 +19,7 @@ struct CppOptional(T) {
 
     @property T value() { return _value; }
 
-    @property T valueOr(T val) { return _hasValue ? _value : val; }
+    T valueOr(T val) { return _hasValue ? _value : val; }
 
     this(nullptr_t _null) {}
 
@@ -31,5 +31,9 @@ struct CppOptional(T) {
     this(optional!T* p_other) {
         _value = p_other._value;
         _hasValue = p_other._hasValue;
+    }
+
+    ~this() {
+        destroy!false(_value);
     }
 }

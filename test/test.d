@@ -66,7 +66,7 @@ void testLFunc(L base) {
 
 /// Does not work
 void testLCase(L base) {
-    _cast!L(base).testLFunc();
+    reinterpretCast!L(base).testLFunc();
 }
 
 extern(C) void main(int argc, char** argv) {
@@ -86,9 +86,9 @@ extern(C) void main(int argc, char** argv) {
     printf("t.i is => %d\n", t.i);
     t.testLFunc();
     (cast(L) cast(void*) t).testLFunc();
-    _cast!L(t).testLFunc();
-    testLFunc(t._cast!L);
-    t._cast!L().testLCase();
+    reinterpretCast!L(t).testLFunc();
+    testLFunc(t.reinterpretCast!L);
+    t.reinterpretCast!L().testLCase();
     // testLCase(t);
     _free(t);
     printf("\n");
@@ -100,19 +100,19 @@ extern(C) void main(int argc, char** argv) {
     printf("\n");
 
     size_t v_newsize = v.capacity + 2;
-    printf("v.reserve(%i)\n", v_newsize);
+    printf("v.reserve(%llu)\n", v_newsize);
     v.reserve(v_newsize);
     vectorInfo(&v);
     printf("\n");
 
     v_newsize = v.capacity - 2;
-    printf("v.resize(%i)\n", v_newsize);
+    printf("v.resize(%llu)\n", v_newsize);
     v.resize(v_newsize);
     vectorInfo(&v);
     printf("\n");
 
     v_newsize = v.capacity + 4;
-    printf("v.resize(%i)\n", v_newsize);
+    printf("v.resize(%llu)\n", v_newsize);
     v.resize(v_newsize);
     vectorInfo(&v);
     printf("\n");
@@ -123,7 +123,7 @@ extern(C) void main(int argc, char** argv) {
     printf("\n");
 
     v_newsize = v.capacity + 2;
-    printf("v.resize(%i, 12)\n", v_newsize);
+    printf("v.resize(%llu, 12)\n", v_newsize);
     v.resize(v_newsize, 12);
     vectorInfo(&v);
     printf("\n");
@@ -221,11 +221,10 @@ extern(C) void main(int argc, char** argv) {
     setstrInfo(s2.data, s2.size);
 
     printf("\n");
-    printf("v[1..$] = 3 2");
+    printf("v[1..$] = 3 2\n");
     vector!int vz = v[1..$];
     vectorInfo(&vz);
-    printf("slice len - %d\n", v[1..$].length);
-    int[2] iarr = v[1..$];
+    printf("slice len - %llu\n", v[1..$].length);
     printf("\n");
 
     printf("Ending tests\n");
@@ -244,8 +243,8 @@ void setstrInfo(T)(T* _data, size_t size ){
 }
 
 void vectorInfo(T)(vector!T* vec) {
-    printf("vector.capacity = %i\n", vec.capacity);
-    printf("vector.size     = %i\n", vec.size);
+    printf("vector.capacity = %llu\n", vec.capacity);
+    printf("vector.size     = %llu\n", vec.size);
     printf("vector.data     = ");
     for (int i = 0; i < vec.size; ++i) { printf("%i ", vec.data()[i]); }
     printf("\n");

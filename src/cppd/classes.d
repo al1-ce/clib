@@ -25,7 +25,7 @@ extern(C) void main(int argc, char** argv) {
 }
 ---
 +/
-T classAlloc(T, Args...)(auto ref Args args) {
+private T classAlloc(T, Args...)(auto ref Args args) {
     // Taken from lsferreira classes betterc d
 
     // Obviously get size of class instance
@@ -60,7 +60,7 @@ T classAlloc(T, Args...)(auto ref Args args) {
 alias _new = classAlloc;
 
 /// Ditto
-void classFree(T)(ref T t) {
+private void classFree(T)(ref T t) {
     // If there's ~this we wanna call it
     static if (__traits(hasMember, T, "__xdtor")) t.__xdtor();
 
@@ -76,20 +76,3 @@ void classFree(T)(ref T t) {
 /// Ditto
 alias _free = classFree;
 
-/++
-Static casting done pretty. It's a known dlang bug 21690 where you can't dynamic cast
-c++ classes. This function fixes that.
-
-Example:
----
-(cast(Base) child).baseFunc(); // will segfault
-(cast(Base) cast(void*) child).baseFunc(); // will work
-_cast!Base(child).baseFunc(); // will also work but easier to read
-someFunc( child._cast!Base ); // or alternative like that
----
-+/
-T staticCast(T, F)(ref F t) {
-    return ( cast(T) cast(void*) t);
-}
-
-alias _cast = staticCast;
