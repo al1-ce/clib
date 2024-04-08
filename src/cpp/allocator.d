@@ -14,29 +14,29 @@ alias allocator = CppAllocatorUnmanaged;
 extern(C++) private class CppAllocatorUnmanaged(T) if (isValidAlloccatorType!T()) {
 
     /// Allocator has no state
-    this() {}
+    this() @nogc nothrow {}
 
     /// Ditto
-    ~this() {}
+    ~this() @nogc nothrow {}
 
     /// Allocates new chunk of memory
-    T* allocate(const size_t size, const size_t alignment = 0) {
+    T* allocate(const size_t size, const size_t alignment = 0) @nogc nothrow {
         void* memory = malloc(size);
         return cast(T*) memory;
     }
 
     /// Reallocates memory
-    T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) {
+    T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow {
         void* memory = realloc(ptr, size);
         return cast(T*) memory;
     }
 
     /// Deallocates memory
-    void deallocate(void* memory) {
+    void deallocate(void* memory) @nogc nothrow {
         free(memory);
     }
 }
 
-private bool isValidAlloccatorType(T)() {
+private bool isValidAlloccatorType(T)() @nogc nothrow {
     return !is(T == const) && !is(T == immutable) && !is(T == class);
 }

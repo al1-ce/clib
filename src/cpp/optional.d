@@ -15,25 +15,25 @@ struct CppOptional(T) {
 
     private bool _hasValue = false;
 
-    @property bool hasValue() { return _hasValue; }
+    @property bool hasValue() @nogc nothrow { return _hasValue; }
 
-    @property T value() { return _value; }
+    @property T value() @nogc nothrow { return _value; }
 
-    T valueOr(T val) { return _hasValue ? _value : val; }
+    T valueOr(T val) @nogc nothrow { return _hasValue ? _value : val; }
 
-    this(nullptr_t _null) {}
+    this(nullptr_t _null) @nogc nothrow {}
 
-    this(T p_val) {
+    this(T p_val) @nogc nothrow {
         _value = p_val;
         _hasValue = true;
     }
 
-    this(optional!T* p_other) {
+    this(optional!T* p_other) @nogc nothrow {
         _value = p_other._value;
         _hasValue = p_other._hasValue;
     }
 
-    ~this() {
+    ~this() @nogc nothrow {
         destroy!false(_value);
     }
 }

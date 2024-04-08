@@ -5,7 +5,7 @@ import core.stdc.stdio;
 extern(C++) {
 
     class CppClass {
-        this(int p_a, char* p_b) {
+        this(int p_a, char* p_b) @nogc nothrow {
             a = p_a;
             b = p_b;
         }
@@ -18,7 +18,7 @@ extern(C++) {
     }
 
     class CppClassSecond: CppClass {
-        this() { super(2, cast(char*) "a".ptr); }
+        this() @nogc nothrow { super(2, cast(char*) "a".ptr); }
         bool e = true;
     }
 
@@ -27,7 +27,7 @@ extern(C++) {
     }
 
     class Base: L {
-        this() {
+        this() @nogc nothrow {
             puts("base construct");
         }
 
@@ -39,7 +39,7 @@ extern(C++) {
             puts("call Base function");
         }
 
-        ~this() {
+        ~this() @nogc nothrow  {
             puts("base close");
         }
     }
@@ -48,12 +48,12 @@ extern(C++) {
         int i;
         int y;
 
-        this(int i, int y) {
+        this(int i, int y) @nogc nothrow {
             this.i= i;
             this.y = y;
         }
 
-        ~this() {
+        ~this() @nogc nothrow  {
             puts("hello world");
         }
     }

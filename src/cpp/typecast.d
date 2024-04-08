@@ -7,6 +7,6 @@ module cpp.typecast;
 // T* constCast(T, F)(F* t) {}
 
 /// Interprets F as T (dangerous, use as workaround to bug 21690)
-T reinterpretCast(T, F)(F t) {
+T reinterpretCast(T, F)(F t) @nogc nothrow {
     return ( cast(T) cast(void*) t );
 }

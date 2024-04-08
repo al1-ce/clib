@@ -25,7 +25,7 @@ extern(C) void main(int argc, char** argv) {
 }
 ---
 +/
-private T classAlloc(T, Args...)(auto ref Args args) {
+private T classAlloc(T, Args...)(auto ref Args args) @nogc nothrow {
     // Taken from lsferreira classes betterc d
 
     // Obviously get size of class instance
@@ -60,7 +60,7 @@ private T classAlloc(T, Args...)(auto ref Args args) {
 alias _new = classAlloc;
 
 /// Ditto
-private void classFree(T)(ref T t) {
+private void classFree(T)(ref T t) @nogc nothrow {
     // If there's ~this we wanna call it
     static if (__traits(hasMember, T, "__xdtor")) t.__xdtor();
 

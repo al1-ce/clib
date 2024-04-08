@@ -23,22 +23,22 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     size_t _size = 0;
 
     /// Returns pointer to data array
-    @property T* data() { return _data; }
+    @property T* data() @nogc nothrow { return _data; }
 
     /// Returns size of allocated storage space
-    @property size_t capacity() { return _capacity; }
+    @property size_t capacity() @nogc nothrow { return _capacity; }
 
     /// Returns number of elements contained in vector
-    @property size_t size() { return _size; }
+    @property size_t size() @nogc nothrow { return _size; }
 
     /// Returns true if vector is empty, i.e `size == 0`
-    @property bool empty() { return _size == 0; }
+    @property bool empty() @nogc nothrow { return _size == 0; }
 
     /// Returns last element or `T.init` if `size == 0`
-    @property T back() { return _size == 0 ? T.init : _data[_size - 1]; }
+    @property T back() @nogc nothrow { return _size == 0 ? T.init : _data[_size - 1]; }
 
     /// Returns first element or `T.init` if `size == 0`
-    @property T front() { return _size == 0 ? T.init : _data[0]; }
+    @property T front() @nogc nothrow { return _size == 0 ? T.init : _data[0]; }
 
     // @disable this();
 
@@ -51,7 +51,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     vector!int v2 = array; // [ 1, 2 ]
     ---
     +/
-    this(T[] p_data...) {
+    this(T[] p_data...) @nogc nothrow {
         _allocator = _new!A();
         reserve(p_data.length);
         _size = p_data.length;
@@ -60,7 +60,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Ditto
-    this(S)(T[S] p_data...) {
+    this(S)(T[S] p_data...) @nogc nothrow {
         _allocator = _new!A();
         reserve(S);
         _size = S;
@@ -69,7 +69,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Ditto
-    this(T[] p_data1, T[] p_data2) {
+    this(T[] p_data1, T[] p_data2) @nogc nothrow {
         _allocator = _new!A();
         size_t S1 = p_data1.length;
         size_t S2 = p_data2.length;
@@ -80,40 +80,40 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
         memcpy(&_data[S1], p_data2.ptr, S2 * T.sizeof);
     }
 
-    ~this() { free(); }
+    ~this() @nogc nothrow { free(); }
 
     /// Length of vector
-    size_t opDollar() const { return _size; }
+    size_t opDollar() @nogc nothrow const { return _size; }
 
     /// Assigns new data to vector
-    void opAssign(size_t S)( T[S] p_data ) {
+    void opAssign(size_t S)( T[S] p_data ) @nogc nothrow {
         clear();
         reserve(S);
         memcpy(_data, p_data.ptr, S * T.sizeof);
         _size = S;
     }
     /// Ditto
-    void opOpAssign(string op: "~")(T item) { push(item); }
+    void opOpAssign(string op: "~")(T item) @nogc nothrow { push(item); }
     /// Ditto
-    void opOpAssign(string op: "~")(T[] arr) { push(arr); }
+    void opOpAssign(string op: "~")(T[] arr) @nogc nothrow { push(arr); }
 
     /// Ditto
-    void opIndexAssign(T val, size_t index) { _data[index] = val; }
+    void opIndexAssign(T val, size_t index) @nogc nothrow { _data[index] = val; }
     /// Ditto
-    void opIndexAssign(T val) { _data[0 .. _size] = val; }
+    void opIndexAssign(T val) @nogc nothrow { _data[0 .. _size] = val; }
 
     /// Returns element of vector
-    T opIndex(size_t p_position) { return _data[p_position]; }
+    T opIndex(size_t p_position) @nogc nothrow { return _data[p_position]; }
     /// Ditto
-    T* opIndex() { return _data; }
+    T* opIndex() @nogc nothrow { return _data; }
 
     /// Returns slice
-    T[] opSlice(size_t start, size_t end) {
+    T[] opSlice(size_t start, size_t end) @nogc nothrow {
         return _data[start .. end];
     }
 
     /// Assigns new data to vector with size and capacity set to `p_size`
-    void assign( T* p_data, size_t p_size ) {
+    void assign( T* p_data, size_t p_size ) @nogc nothrow {
         resize(p_size);
         _size = p_size;
         _capacity = p_size;
@@ -122,7 +122,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Allocates memory for `p_size` elements if `p_size > capacity`
     /// Returns true on success
-    bool reserve(size_t p_size) {
+    bool reserve(size_t p_size) @nogc nothrow {
         if (p_size <= _capacity) return true;
         if (_allocator is null) _allocator = _new!A();
 
@@ -144,7 +144,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Resizes vector to `p_size` and assigns `p_val` to new elements if `p_size > size`
     /// Returns true on success
-    bool resize(size_t p_size, const T p_val = T.init) {
+    bool resize(size_t p_size, const T p_val = T.init) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         void* newData;
 
@@ -169,20 +169,20 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Pushes new element to the end of vector.
     /// If `newSize + 1 >= capacity` then it will `reserve(capacity * 2 + 2)`
-    void push(T val) {
+    void push(T val) @nogc nothrow {
         if (_size >= _capacity) reserve(_capacity * 2 + 2);
         _data[_size] = val;
         ++_size;
     }
 
     /// Ditto
-    void push(T[] arr) {
+    void push(T[] arr) @nogc nothrow {
         foreach (i; arr) push(i);
     }
 
     /// Pushes new element to beginning of vector.
     /// If `newSize + 1 > capacity` then it will `reserve(capacity * 2 + 2)`
-    void pushFront(T val) {
+    void pushFront(T val) @nogc nothrow {
         if (_size >= _capacity) reserve((_capacity + 1) * 2);
         // for (size_t i = _size; i > 0; --i) _data[i] = _data[i - 1];
         memcpy(&_data[1], _data, _size * T.sizeof);
@@ -192,7 +192,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Pushes new elements to beginning of vector.
     /// If `newSize > capacity` then it will `reserve(capacity * 2 + newSize + 2)`
-    void pushFront(T[] vals...) {
+    void pushFront(T[] vals...) @nogc nothrow {
         if (_size + vals.length >= _capacity) reserve(_capacity * 2 + vals.length + 2);
         memcpy(&_data[vals.length], _data, _size * T.sizeof);
         memcpy(_data, vals.ptr, vals.length * T.sizeof);
@@ -202,7 +202,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Removes element at `pos`
-    void erase(size_t pos) {
+    void erase(size_t pos) @nogc nothrow {
         for (size_t i = pos; i < _size - 1; ++i) {
             _data[i] = _data[i + 1];
         }
@@ -210,7 +210,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Removes elements between `p_start` and `p_end`
-    void erase(size_t p_start, size_t p_end) {
+    void erase(size_t p_start, size_t p_end) @nogc nothrow {
         if (p_end <= p_start) return;
         size_t diff = p_end - p_start + 1;
 
@@ -224,7 +224,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     /// Reallocates memory so that `capacity == size`.
     /// Does nothing if data is uninitialized
     /// Returns true if was successful
-    bool shrink() {
+    bool shrink() @nogc nothrow {
         if (_size == _capacity) return true;
         if (_allocator is null) _allocator = _new!A();
 
@@ -240,7 +240,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Returns first element or `T.init` if `size == 0` and removes it from vector
-    T popFront() {
+    T popFront() @nogc nothrow {
         if (_size == 0) return T.init;
         T val = _data[0];
         erase(0);
@@ -248,7 +248,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Returns last element or `T.init` if `size == 0` and removes it from vector
-    T pop() {
+    T pop() @nogc nothrow {
         if (_size == 0) return T.init;
         --_size;
         return _data[_size];
@@ -256,7 +256,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Inserts value into vector at `p_pos`
     /// If `newSize + 1 >= capacity` then it will `reserve((capacity + 1) * 2)`
-    void insert(size_t p_pos, T p_val) {
+    void insert(size_t p_pos, T p_val) @nogc nothrow {
         if (_size >= _capacity) reserve((_capacity + 1) * 2);
         for (size_t i = _size; i > p_pos; --i) _data[i] = _data[i - 1];
         _data[p_pos] = p_val;
@@ -265,7 +265,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Swaps contents with another vector
-    void swap(vector!T* p_vec) {
+    void swap(vector!T* p_vec) @nogc nothrow {
         T* pd = p_vec._data;
         size_t ps = p_vec._size;
         size_t pc = p_vec._capacity;
@@ -278,7 +278,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Destroys vector data and sets size to 0
-    void clear() {
+    void clear() @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         void* newData = _allocator.allocate(_capacity * T.sizeof);
         if (newData is null) return;
@@ -293,7 +293,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Destroys vector data without allocating new memory
-    void free() {
+    void free() @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (_data !is null) {
             freeData();
@@ -305,7 +305,7 @@ private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
         _capacity = 0;
     }
 
-    private void freeData() {
+    private void freeData() @nogc nothrow {
         if (_data !is null) {
             for (size_t i = 0; i < _size; ++i) destroy!false(_data[i]);
         }
