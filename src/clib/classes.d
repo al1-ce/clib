@@ -1,7 +1,13 @@
-/// Module containing utils to work with betterC
-module cpp.classes;
+/**
+DO NOT USE WITH ANYTHING EXCEPT `extern(C++)` CLASSES
+
+Module containing class utils to work with betterC
+*/
+module clib.classes;
 
 /++
+DO NOT USE WITH ANYTHING EXCEPT `extern(C++)` CLASSES
+
 Used to allocate/deallocate memory for C++ classes
 
 Example:
@@ -25,7 +31,7 @@ extern(C) void main(int argc, char** argv) {
 }
 ---
 +/
-private T classAlloc(T, Args...)(auto ref Args args) @nogc nothrow {
+T _new(T, Args...)(auto ref Args args) @nogc nothrow {
     // Taken from lsferreira classes betterc d
 
     // Obviously get size of class instance
@@ -57,10 +63,7 @@ private T classAlloc(T, Args...)(auto ref Args args) @nogc nothrow {
 }
 
 /// Ditto
-alias _new = classAlloc;
-
-/// Ditto
-private void classFree(T)(ref T t) @nogc nothrow {
+void _free(T)(ref T t) @nogc nothrow {
     // If there's ~this we wanna call it
     static if (__traits(hasMember, T, "__xdtor")) t.__xdtor();
 
@@ -72,7 +75,4 @@ private void classFree(T)(ref T t) @nogc nothrow {
     // And if T is nullable then make it null
     static if (__traits(compiles, { t = null; })) t = null;
 }
-
-/// Ditto
-alias _free = classFree;
 

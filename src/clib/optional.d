@@ -1,15 +1,12 @@
 /++
 Simple alternative to std.typecons: Nullable
 +/
-module cpp.optional;
+module clib.optional;
 
 import core.stdc.stddef: nullptr_t;
 
 /// Optional type
-alias optional = CppOptional;
-
-/// Ditto
-struct CppOptional(T) {
+struct optional(T) {
 
     private T _value;
 

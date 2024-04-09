@@ -1,5 +1,5 @@
 /// C++ casts
-module cpp.typecast;
+module clib.typecast;
 
 // Unable to use since no TypeInfo
 // T* dynamicCast(T, F)(F* t) {}

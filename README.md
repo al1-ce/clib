@@ -1,12 +1,15 @@
-# cpp
+# clib
 c++ stdlib and utils for D with betterC
 
-## Modules (mostly from c++ std) and why
+## Why
+D's standard library isn't really noGC and especially betterC friendly, so, why not make somewhat of a -betterC compatible runtime
+
+## Modules (mostly from c++ std)
 - allocator (own) - Minimal allocator to allow custom allocators to be used with other modules (currently just a wrapper over malloc)
 - classes (own) - Just a small amout of utilities to make classes work with betterC (which you would use with extern(C++) classes)
 - optional (std::optional) - TypeInfo is not noGC compatible
-- set (std::set) - Once again, D arrays are heavily GC so gotta have this 
 - vector (std::vector) - Because apparently D arrays are very much relying on GC, for example you wouldn't be able to go about and @nogc array.reserve(size) because it suddenly needs TypeInfo!
+- set (std::set) - Once again, D arrays are heavily GC so gotta have this 
 
 ## Other
 Modules that are copied from c++ STL are close to what you'd have in c++, meaning you'd usually will be able to translate c++ code to D + cpp code without any problem
@@ -30,9 +33,9 @@ _free(c);
 c._free();
 ```
 
-`cpp.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
+`clib.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
 ```d
-import cpp.typecast;
+import clib.typecast;
 reinterpretCast!ICpp(t).icppFunc();
 somefunc( t.reinterpretCast!ICpp );
 ```

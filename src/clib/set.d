@@ -1,10 +1,10 @@
 /++
 betterC compatible associative container that contains a sorted set of unique objects
 +/
-module cpp.set;
+module clib.set;
 
-import cpp.allocator;
-import cpp.classes;
+import clib.allocator;
+import clib.classes;
 
 /++
 Unique value container.
@@ -14,10 +14,7 @@ Default sorting algorithm is bubble sort.
 
 Prefer inserting values by bulk because it sorts after each `insert` call.
 ++/
-alias set = CppSet;
-
-/// Ditto
-private struct CppSet(T, alias Compare = sortFunction, A = allocator!T) {
+struct set(T, alias Compare = sortFunction, A = allocator!T) {
     private T* _data = null;
     private A _allocator = null;
 

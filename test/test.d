@@ -1,4 +1,4 @@
-import cpp;
+import clib;
 
 import core.stdc.stdio;
 

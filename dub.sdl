@@ -1,4 +1,4 @@
-name "cpp"
+name "clib"
 description "c++ stdlib and utils for D with betterC or nogc"
 authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
@@ -15,6 +15,6 @@ subPackage {
     sourcePaths "test/"
     importPaths "test/"
     targetPath "bin/"
-    dependency "cpp" version="*"
+    dependency "clib" version="*"
     dflags "-betterC"
 }

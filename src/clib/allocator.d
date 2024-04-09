@@ -1,17 +1,14 @@
 /++
 A simple allocator. Allows for custom custom allocators to be used with some cpp types.
 
-All allocators must have same `signature` as CppAllocatorUnmanaged
+All allocators must have same "signature" as `allocator`
 +/
-module cpp.allocator;
+module clib.allocator;
 
 import core.stdc.stdlib: malloc, realloc, free;
 
 /// Default unmanaged allocator (a wrapper over malloc)
-alias allocator = CppAllocatorUnmanaged;
-
-/// Ditto
-extern(C++) private class CppAllocatorUnmanaged(T) if (isValidAlloccatorType!T()) {
+extern(C++) class allocator(T) if (isValidAlloccatorType!T()) {
 
     /// Allocator has no state
     this() @nogc nothrow {}

@@ -3,19 +3,16 @@ betterC compatible dynamic size container.
 
 Most of functionality is taken directly from cpp's std::vector with minor changes
 +/
-module cpp.vector;
+module clib.vector;
 
 // import core.stdc.stdlib: free, malloc, calloc, realloc;
 import core.stdc.string: memcpy;
 
-import cpp.allocator;
-import cpp.classes;
+import clib.allocator;
+import clib.classes;
 
 /// betterC compatible dynamic size container
-alias vector = CppVector;
-
-/// Ditto
-private struct CppVector(T, A = allocator!T) if (!is(T == bool)) {
+struct vector(T, A = allocator!T) if (!is(T == bool)) {
     private T* _data = null;
     private A _allocator = null;
 

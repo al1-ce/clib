@@ -1,7 +1,7 @@
-/// TypeInfo betterC alternative (WIP)
-module cpp.typeinfo;
+/// TypeInfo betterC alternative (WIP DO NOT USE)
+module clib.typeinfo;
 
-private struct CppTypeInfo(T) {
+struct type_info(T) {
     const(char*) name();
     // size_t toHash() const {}
     // bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) const {}
@@ -32,13 +32,12 @@ private struct CppTypeInfo(T) {
 }
 
 /// Queries information about type
-alias _typeid = getTypeId;
-
-private CppTypeInfo!T getTypeId(T)(T t) @nogc nothrow {
+CppTypeInfo!T _typeid(T)(T t) @nogc nothrow {
     return CppTypeInfo!T();
 }
 
-private CppTypeInfo!T getTypeId(T)() @nogc nothrow {
+/// Ditto
+CppTypeInfo!T _typeid(T)() @nogc nothrow {
     return CppTypeInfo!T();
 }
 
