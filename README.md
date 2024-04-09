@@ -2,7 +2,9 @@
 c++ stdlib and utils for D with betterC
 
 ## Why
-D's standard library isn't really noGC and especially betterC friendly, so, why not make somewhat of a -betterC compatible runtime
+D's standard library isn't really noGC and especially betterC friendly, so, why not make somewhat of a -betterC compatible runtime.
+
+And why it's called clib? Because it's a better**CLib**rary
 
 ## Modules (mostly from c++ std)
 - allocator (own) - Minimal allocator to allow custom allocators to be used with other modules (currently just a wrapper over malloc)
