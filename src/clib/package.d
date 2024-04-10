@@ -30,10 +30,10 @@ public import
     // clib.stack,
     // clib.stdexcept,
     // clib.streambuf,
-    // clib.string_,
+    clib.cstring,
     // clib.strstream,
     clib.typecast,
-    // clib.typeinfo,
+    clib.typeinfo,
     // clib.utility,
     // clib.valarray
     clib.vector

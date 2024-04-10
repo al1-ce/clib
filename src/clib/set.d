@@ -3,6 +3,8 @@ betterC compatible associative container that contains a sorted set of unique ob
 +/
 module clib.set;
 
+import core.stdc.string: memcmp;
+
 import clib.allocator;
 import clib.classes;
 
@@ -23,6 +25,9 @@ struct set(T, alias Compare = sortFunction, A = allocator!T) {
 
     /// Returns pointer to data array
     @property T* data() @nogc nothrow { return _data; }
+
+    /// Returns array
+    @property T[] array() @nogc nothrow { return _data[0.._size]; }
 
     /// Returns size of allocated storage space
     @property size_t capacity() @nogc nothrow { return _capacity; }
@@ -47,17 +52,43 @@ struct set(T, alias Compare = sortFunction, A = allocator!T) {
     }
 
     ~this() @nogc nothrow { free(); }
-    /// Assigns new data to vector
+
+    /// Length of set
+    size_t opDollar() @nogc nothrow const { return _size; }
+
+    /// Assigns new data to set
     void opAssign(size_t S)( T[S] p_data ) @nogc nothrow {
         clear();
         reserve(S);
-        insert(p_data);
+        memcpy(_data, p_data.ptr, S * T.sizeof);
+        _size = S;
     }
+
     /// Ditto
     void opOpAssign(string op: "~")(T item) @nogc nothrow { insert(item); }
     /// Ditto
     void opOpAssign(string op: "~")(T[] arr) @nogc nothrow { insert(arr); }
 
+    /// Returns element of set
+    T opIndex(size_t p_position) @nogc nothrow { return _data[p_position]; }
+    /// Ditto
+    T* opIndex() @nogc nothrow { return _data; }
+
+    /// Returns slice
+    T[] opSlice(size_t start, size_t end) @nogc nothrow {
+        return _data[start .. end];
+    }
+
+    /// Ditto
+    bool opEquals(T[] other) const @nogc nothrow {
+        if (!_size == other.length) return false;
+        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
+    }
+    /// Ditto
+    bool opEquals(size_t N)(T[N] other) const @nogc nothrow {
+        if (!_size == other.length) return false;
+        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
+    }
 
     /// Inserts values into set if `!has(val)`
     void insert(T[] vals...) @nogc nothrow {
@@ -78,13 +109,13 @@ struct set(T, alias Compare = sortFunction, A = allocator!T) {
     alias has = contains;
 
     /// Ditto
-    bool contains(ref T val) @nogc nothrow {
+    bool contains(T val) @nogc nothrow {
         for (size_t i = 0; i < _size; ++i) if (_data[i] == val) return true;
         return false;
     }
 
-    /// Bubble sort (it's stable, it's simple, if you using CppSet on large data)
-    /// then you better rethink your life
+    /// Bubble sort (it's stable, it's simple, if you using set on large data
+    /// then you better rethink your life)
     private void sort() @nogc nothrow {
         bool swapped;
         for (size_t i = 0; i <  _size - 1; ++i) {
@@ -182,3 +213,74 @@ private bool sortFunction(T)(T a, T b) @nogc nothrow {
         return a > b;
     }
 }
+
+@nogc nothrow:
+// Unittests
+
+unittest {
+    set!int s = set!int(3, 2, 1, 4, 12, 0);
+    assert(s == [0, 1, 2, 3, 4, 12]);
+    assert(s.size == 6);
+    assert(s.front == 0);
+    assert(s.back == 12);
+    s.clear();
+    assert(s.empty);
+    assert(s.size == 0);
+}
+
+unittest {
+    set!int s = set!int(1, 2, 3);
+    s ~= 4;
+    int[2] arr = [0, -1];
+    s ~= arr;
+    assert(s == [-1, 0, 1, 2, 3, 4]);
+}
+
+unittest {
+    set!int s = set!int(1, 2, 3);
+    s.insert(-1, 2, 5, 6, 12);
+    assert(s == [-1, 1, 2, 3, 5, 6, 12]);
+    assert(s.has(1));
+    assert(!s.has(15));
+}
+
+unittest {
+    set!int s;
+    s.reserve(12);
+    assert(s.capacity == 12);
+    assert(s.size == 0);
+    s.insert(2);
+    s.shrink();
+    assert(s.size == 1);
+    assert(s == [2]);
+    assert(s.capacity == 1);
+}
+
+unittest {
+    set!(char*) s;
+    char*[5] a = [
+        cast(char*)"abcd".ptr,
+        cast(char*)"cbda".ptr,
+        cast(char*)"dcba".ptr,
+        cast(char*)"add".ptr,
+        cast(char*)"remove".ptr
+    ];
+    s.insert(a);
+    char*[5] b = [
+        cast(char*)"add".ptr,
+        cast(char*)"abcd".ptr,
+        cast(char*)"cbda".ptr,
+        cast(char*)"dcba".ptr,
+        cast(char*)"remove".ptr
+    ];
+    import core.stdc.string: strcmp;
+    assert(strcmp(s[0], cast(char*) "abcd".ptr) == 0);
+    assert(strcmp(s[1], cast(char*) "add".ptr) == 0);
+}
+
+unittest {
+    bool revFunc(int a, int b) @nogc nothrow {return a < b;}
+    set!(int, revFunc) s = set!(int, revFunc)(1, 2, 3, 5, 12, 0);
+    assert(s == [12, 5, 3, 2, 1, 0]);
+}
+

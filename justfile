@@ -14,11 +14,16 @@ run:
     dub run :test
 
 test: build_test
-    dub test
+    # echo "EXPECT LEAK OF 72 BYTES UNTIL 23106 IS RESOLVED"
+    dub test --vquiet
+    valgrind ./bin/clib-test-library
     valgrind ./bin/clib_test
 
 test_full: build_test
-    valgrind --leak-check=full ./bin/clib_test
+    # echo "EXPECT LEAK OF 72 BYTES UNTIL 23106 IS RESOLVED"
+    dub test --vquiet
+    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib-test-library
+    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib_test
 
 # Cheatsheet:
 # Set a variable (variable case is arbitrary)

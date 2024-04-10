@@ -17,7 +17,30 @@ And why it's called clib? Because it's a better**CLib**rary
 Modules that are copied from c++ STL are close to what you'd have in c++, meaning you'd usually will be able to translate c++ code to D + cpp code without any problem
 
 ## On classes
-D's keyword `new` can't be used with -betterC since it uses TypeInfo and to "fix" that there's a module named `classes`. As of now it contains three functions: `_new`, `_free` and `_cast` which can be used to use classes with -betterC
+D's keyword `new` can't be used with -betterC since it uses TypeInfo and to "fix" that there's a module named `classes`. As of now it contains three functions: `_new`, `_free` and `_cast` which can be used to use classes with -betterC.
+
+### IMPORTANT 1:
+There's a way to use classes without `classes` module. Instantiate your classes as:
+```d
+__gshared CppClass c = new CppClass();
+```
+
+### IMPORTANT 2:
+If you want some alternative to D's `typeid` and `TypeInfo` then import `clib.typeinfo` and derive all your classes from `cppObject`. Albeit `type_info` can't provide with everything that `TypeInfo` provides since D does not provide any RTTI for C++ classes. Example of usage:
+```d
+import clib.typeinfo;
+
+class CppRTTI: cppObject {
+    mixin RTTI!cppObject;
+}
+class ChildCppRTTI: CppRTTI {
+    mixin RTTI!CppRTTI;
+}
+
+ChildCppRTTI cprt;
+if (_typeid(cprt) != _typeid!CppRTTI) printf("Not same\n");
+if (_typeid!CppRTTI().isBaseOf(cprt)) printf("Is child\n");
+```
 
 ### _new
 `_new` can be used to construct class and allocate memory for it
@@ -35,23 +58,23 @@ _free(c);
 c._free();
 ```
 
-`clib.typecast.reinterpretCast` is used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690), inside it's actually just a reinterpret cast (`cast(T) cast(void*) t`)
+`clib.typecast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690)
 ```d
 import clib.typecast;
-reinterpretCast!ICpp(t).icppFunc();
-somefunc( t.reinterpretCast!ICpp );
+reinterpret_cast!ICpp(t).icppFunc();
+somefunc( t.reinterpret_cast!ICpp );
 ```
 
-It is important to know that -betterC places a lot of contraints. Most important ones are `new` keyword and no dynamic casts. `new` can be easily replaced with `_new!`, but for dynamic casts you have to work around it unless `#21690` will be fixed
+It is important to know that -betterC places a lot of contraints. Most important ones are `new` keyword and no dynamic casts. `new` can be easily replaced with `_new!` or `__gshared ...`, but for dynamic casts you have to work around it unless `#21690` will be fixed
 ```d
 void testBaseFunc(ICpp base) {
     base.baseFunc();
-    reinterpretCast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
+    reinterpret_cast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
 }
 
 testBaseFunc(c); // will case segfault!!!
-testBaseFunc(reinterpretCast!ICpp(base)); // must be a reinterpret cast
-reinterpretCast!ICpp(base).testBaseFunc(); // or treat it as member
+testBaseFunc(reinterpret_cast!ICpp(base)); // must be a reinterpret cast
+reinterpret_cast!ICpp(base).testBaseFunc(); // or treat it as member
 ```
 
 ## C++ STL implementation list
@@ -84,7 +107,7 @@ reinterpretCast!ICpp(base).testBaseFunc(); // or treat it as member
 - [ ] streambuf
 - [ ] string
 - [ ] strstream
-- [ ] typeinfo
+- [ ] typeinfo (requires hacks due to linkage errors)
 - [ ] utility
 - [ ] valarray
 - [x] vector

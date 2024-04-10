@@ -6,7 +6,7 @@ Most of functionality is taken directly from cpp's std::vector with minor change
 module clib.vector;
 
 // import core.stdc.stdlib: free, malloc, calloc, realloc;
-import core.stdc.string: memcpy, memcmp;
+import core.stdc.string: memcpy, memcmp, strcpy, strcmp;
 
 import clib.allocator;
 import clib.classes;
@@ -22,6 +22,9 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     /// Returns pointer to data array
     @property T* data() @nogc nothrow { return _data; }
 
+    /// Ditto
+    alias ptr = data;
+
     /// Returns array
     @property T[] array() @nogc nothrow { return _data[0.._size]; }
 
@@ -31,6 +34,9 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     /// Returns number of elements contained in vector
     @property size_t size() @nogc nothrow { return _size; }
 
+    /// Ditto
+    alias length = size;
+
     /// Returns true if vector is empty, i.e `size == 0`
     @property bool empty() @nogc nothrow { return _size == 0; }
 
@@ -39,6 +45,25 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Returns first element or `T.init` if `size == 0`
     @property T front() @nogc nothrow { return _size == 0 ? T.init : _data[0]; }
+
+    /++ Returns data pointer and clears vector
+        IMPORTANT: Data pointer must be freed manually
+    +/
+    @property T* steal() @nogc nothrow {
+        T* tmp = _data;
+        _data = null;
+        clear();
+        return tmp;
+    }
+
+    static if (is(T == char)) {
+        /// Returns null-terminated string
+        @property vector!char stringz() @nogc nothrow {
+            vector!char v = _data[0.._size];
+            v ~= '\0';
+            return v;
+        }
+    }
 
     // @disable this();
 
@@ -71,6 +96,15 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     /// Ditto
     this(T* p_data, size_t p_size) { assign(p_data, p_size); }
 
+    static if (is(T == char)) {
+        /// Ditto
+        this(string str) @nogc nothrow {
+            reserve(_size + str.length + 1);
+            strcpy(&_data[_size], cast(char*) str.ptr);
+            _size += str.length;
+        }
+    }
+
     ~this() @nogc nothrow { free(); }
 
     /// Length of vector
@@ -96,6 +130,17 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     void opOpAssign(string op: "~")(T item) @nogc nothrow { push(item); }
     /// Ditto
     void opOpAssign(string op: "~")(T[] arr) @nogc nothrow { push(arr); }
+    /// Ditto
+    void opOpAssign(string op: "~")(vector!T vec) @nogc nothrow { push(vec.array); }
+
+    static if (is(T == char)) {
+        /// Ditto
+        void opOpAssign(string op: "~")(string arr) @nogc nothrow {
+            reserve(_size + arr.length + 1);
+            strcpy(&_data[_size], cast(char*) arr.ptr);
+            _size += arr.length;
+        }
+    }
 
     /// Ditto
     void opIndexAssign(T val, size_t index) @nogc nothrow { _data[index] = val; }
@@ -115,24 +160,72 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     // bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) const @nogc nothrow;
     /// Compares vector to value
     /// `vector!T other` is `ref` to prevent dtor() from being called
-    bool opEquals(ref vector!T other) const @nogc nothrow {
-        if (other._size != _size) return false;
-        if (other._data == null) return false;
+    bool opEquals(M)(ref vector!(T, M) other) const @nogc nothrow {
         if (_data == null) return false;
+        if (other._data == null) return false;
+        if (other._size != _size) return false;
         return memcmp(_data, other._data, _size * T.sizeof) == 0;
     }
     /// Ditto
     bool opEquals(T[] other) const @nogc nothrow {
-        if (!_size == other.length) return false;
+        if (_data == null) return false;
+        if (_size != other.length) return false;
         return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
     }
     /// Ditto
     bool opEquals(size_t N)(T[N] other) const @nogc nothrow {
-        if (!_size == other.length) return false;
+        if (_data == null) return false;
+        if (_size != other.length) return false;
         return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
     }
 
     // TODO: possibly opBinary(~) since ref seems to work
+
+    vector!T opBinary(string op: "~")(T other) @nogc nothrow {
+        vector!T v = vector!T(_data[0.._size]);
+        v ~= other;
+        return v;
+    }
+
+    vector!T opBinary(string op: "~")(T[] other) @nogc nothrow {
+        vector!T v = vector!T(_data[0.._size]);
+        v ~= other;
+        return v;
+    }
+
+    vector!T opBinary(string op: "~")(ref vector!T other) @nogc nothrow {
+        vector!T v = vector!T(_data[0.._size]);
+        v ~= other.array;
+        return v;
+    }
+
+    vector!T opBinaryRight(string op: "~")(T other) @nogc nothrow {
+        vector!T v = vector!T(other);
+        v ~= _data[0.._size];
+        return v;
+    }
+
+    vector!T opBinaryRight(string op: "~")(T[] other) @nogc nothrow {
+        vector!T v = vector!T(other);
+        v ~= _data[0.._size];
+        return v;
+    }
+
+    static if (is(T == char)) {
+        vector!char opBinary(string op: "~")(string str) @nogc nothrow {
+            vector!char v;
+            v ~= _data[0.._size];
+            v ~= str;
+            return v;
+        }
+
+        vector!char opBinaryRight(string op: "~")(string str) @nogc nothrow {
+            vector!char v;
+            v ~= str;
+            v ~= _data[0.._size];
+            return v;
+        }
+    }
 
     /// Assigns new data to vector with size and capacity set to `p_size`
     void assign( T* p_data, size_t p_size ) @nogc nothrow {
@@ -391,6 +484,18 @@ unittest {
 }
 
 unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = vector!int(3, 2, 1);
+    vector!int b = v ~ a;
+    assert(b == [3, 2, 1, 1, 2, 3]);
+    b = a ~ v;
+    assert(b == [1, 2, 3, 3, 2, 1]);
+    b = a;
+    b = v ~ b;
+    assert(b == [3, 2, 1, 1, 2, 3]);
+}
+
+unittest {
     import core.stdc.string;
     int[4] data = [1, 2, 3, 4];
     vector!int v;
@@ -479,4 +584,35 @@ unittest {
     assert(v.capacity == 1);
 }
 
+unittest {
+    vector!char v = "testing man";
+    assert(v == "testing man");
+}
+
+unittest {
+    vector!char v;
+    v ~= "test";
+    char[4] t = ['t', 'e', 's', 't'];
+    assert(v == t);
+    assert(v == "test");
+}
+
+unittest {
+    vector!char v = "no ";
+    vector!char n = v ~ "test";
+    assert(n == "no test");
+    n = "there is " ~ n ~ " at all";
+    assert(n == "there is no test at all");
+}
+
+unittest {
+    vector!char v = "test";
+    char[5] a = ['t', 'e', 's', 't', '\0'];
+    import core.stdc.string: strcmp;
+    assert(strcmp(v.stringz.ptr, a.ptr) == 0);
+    char* sz = v.stringz.steal;
+    assert(strcmp(sz, a.ptr) == 0);
+    import core.stdc.stdlib;
+    free(sz);
+}
 

@@ -8,6 +8,8 @@ module clib.classes;
 /++
 DO NOT USE WITH ANYTHING EXCEPT `extern(C++)` CLASSES
 
+ALTERNATIVE TO DECLARING `__gshared CppClass c = new CppClass();` (yes it works)
+
 Used to allocate/deallocate memory for C++ classes
 
 Example:
@@ -57,6 +59,7 @@ T _new(T, Args...)(auto ref Args args) @nogc nothrow {
     import core.lifetime : forward;
 
     // Actual construction
+    // static if (__traits(hasMember, T, "__ctor"))
     t.__ctor(forward!args);
 
     return t;
