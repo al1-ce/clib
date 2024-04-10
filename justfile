@@ -14,6 +14,7 @@ run:
     dub run :test
 
 test: build_test
+    dub test
     valgrind ./bin/clib_test
 
 test_full: build_test

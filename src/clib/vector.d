@@ -6,7 +6,7 @@ Most of functionality is taken directly from cpp's std::vector with minor change
 module clib.vector;
 
 // import core.stdc.stdlib: free, malloc, calloc, realloc;
-import core.stdc.string: memcpy;
+import core.stdc.string: memcpy, memcmp;
 
 import clib.allocator;
 import clib.classes;
@@ -21,6 +21,9 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Returns pointer to data array
     @property T* data() @nogc nothrow { return _data; }
+
+    /// Returns array
+    @property T[] array() @nogc nothrow { return _data[0.._size]; }
 
     /// Returns size of allocated storage space
     @property size_t capacity() @nogc nothrow { return _capacity; }
@@ -66,16 +69,7 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Ditto
-    this(T[] p_data1, T[] p_data2) @nogc nothrow {
-        _allocator = _new!A();
-        size_t S1 = p_data1.length;
-        size_t S2 = p_data2.length;
-        reserve(S1 + S2 - 1);
-        _size = S1 + S2 - 1;
-        _capacity = S1 + S2 - 1;
-        memcpy(_data, p_data1.ptr, S1 * T.sizeof);
-        memcpy(&_data[S1], p_data2.ptr, S2 * T.sizeof);
-    }
+    this(T* p_data, size_t p_size) { assign(p_data, p_size); }
 
     ~this() @nogc nothrow { free(); }
 
@@ -89,6 +83,15 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
         memcpy(_data, p_data.ptr, S * T.sizeof);
         _size = S;
     }
+
+    /// Assigns new data to vector
+    void opAssign( T p_val ) @nogc nothrow {
+        size_t S = _size;
+        clear();
+        resize(S, p_val);
+        _size = S;
+    }
+
     /// Ditto
     void opOpAssign(string op: "~")(T item) @nogc nothrow { push(item); }
     /// Ditto
@@ -108,6 +111,28 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     T[] opSlice(size_t start, size_t end) @nogc nothrow {
         return _data[start .. end];
     }
+
+    // bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) const @nogc nothrow;
+    /// Compares vector to value
+    /// `vector!T other` is `ref` to prevent dtor() from being called
+    bool opEquals(ref vector!T other) const @nogc nothrow {
+        if (other._size != _size) return false;
+        if (other._data == null) return false;
+        if (_data == null) return false;
+        return memcmp(_data, other._data, _size * T.sizeof) == 0;
+    }
+    /// Ditto
+    bool opEquals(T[] other) const @nogc nothrow {
+        if (!_size == other.length) return false;
+        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
+    }
+    /// Ditto
+    bool opEquals(size_t N)(T[N] other) const @nogc nothrow {
+        if (!_size == other.length) return false;
+        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
+    }
+
+    // TODO: possibly opBinary(~) since ref seems to work
 
     /// Assigns new data to vector with size and capacity set to `p_size`
     void assign( T* p_data, size_t p_size ) @nogc nothrow {
@@ -173,7 +198,7 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Ditto
-    void push(T[] arr) @nogc nothrow {
+    void push(T[] arr...) @nogc nothrow {
         foreach (i; arr) push(i);
     }
 
@@ -199,20 +224,29 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Removes element at `pos`
+    /// If `pos >= size` then it will do nothing
     void erase(size_t pos) @nogc nothrow {
+        if (_size == 0) return;
+        if (pos >= _size) return;
         for (size_t i = pos; i < _size - 1; ++i) {
             _data[i] = _data[i + 1];
         }
         --_size;
     }
 
-    /// Removes elements between `p_start` and `p_end`
+    /// Removes elements between `p_start` and `p_end`, including `p_end`
+    /// If `p_end >= size` then `p_end = size - 1`
+    /// If `p_end <= p_start` then it does nothing
     void erase(size_t p_start, size_t p_end) @nogc nothrow {
+        if (_size == 0) return;
+        if (p_end >= _size) p_end = _size - 1;
         if (p_end <= p_start) return;
-        size_t diff = p_end - p_start + 1;
+        if (p_end == _size - 1) {_size = p_start + 1; return;}
+        size_t diff = p_end - p_start;
 
         for (size_t i = 1; i < diff + 1; ++i) {
-            _data[p_start + i] = _data[p_end + i + 1];
+            if (p_end + i >= _size) break;
+            _data[p_start + i] = _data[p_end + i];
         }
 
         _size -= diff;
@@ -253,12 +287,13 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
 
     /// Inserts value into vector at `p_pos`
     /// If `newSize + 1 >= capacity` then it will `reserve((capacity + 1) * 2)`
+    /// If `p_pos >= size` then it will do nothing (use `push()` instead)
     void insert(size_t p_pos, T p_val) @nogc nothrow {
+        if (p_pos >= _size) return;
         if (_size >= _capacity) reserve((_capacity + 1) * 2);
         for (size_t i = _size; i > p_pos; --i) _data[i] = _data[i - 1];
         _data[p_pos] = p_val;
         ++_size;
-
     }
 
     /// Swaps contents with another vector
@@ -308,3 +343,140 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
         }
     }
 }
+
+// Unittests
+// TODO: more edge cases
+@nogc nothrow:
+
+unittest {
+    int[3] testArr = [2, 5, 6];
+    vector!int v = testArr;
+    assert(v[0..$] == [2, 5, 6]);
+
+    v = vector!int(1, 4, 2);
+    assert(v.array == [1, 4, 2]);
+}
+
+unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = a;
+    v ~= 2;
+    assert(v[0..$] == [1, 2, 3, 2]);
+    v ~= a;
+    assert(v[0..$] == [1, 2, 3, 2, 1, 2, 3]);
+}
+
+unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = a;
+    assert(v[1] == 2);
+    v[1] = 4;
+    assert(v[0..$] == [1, 4, 3]);
+    v = 2;
+    assert(v[0..$] == [2, 2, 2]);
+}
+
+unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = vector!int(3, 2, 1);
+    assert(v != a);
+    assert(v != [1, 3, 2]);
+    assert(v == [3, 2, 1]);
+    vector!int vb = vector!int(3, 2, 1);
+    assert(v == vb);
+    vb = vector!int(1, 2, 3);
+    assert(v != vb);
+    vb = vector!int(3, 2, 1, 0);
+    assert(v != vb);
+}
+
+unittest {
+    import core.stdc.string;
+    int[4] data = [1, 2, 3, 4];
+    vector!int v;
+    v.assign(data.ptr, 4);
+    assert(v[0..$] == [1, 2, 3, 4]);
+
+    vector!int k = vector!int(data.ptr, 4);
+    assert(v[0..$] == [1, 2, 3, 4]);
+}
+
+unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = a;
+    assert(v.size == 3);
+
+    assert(v.resize(6));
+    assert(v.size == 6);
+
+    assert(v.reserve(12));
+    assert(v.capacity == 12);
+    assert(v.size == 6);
+}
+
+unittest {
+    int[3] a = [1, 2, 3];
+    vector!int v = a;
+    assert(v.front == 1);
+    assert(v.back == 3);
+    v.push(4, 5);
+    assert(v.array == [1, 2, 3, 4, 5]);
+    v.pushFront(0);
+    assert(v.array == [0, 1, 2, 3, 4, 5]);
+    v.pushFront(-2, -1);
+    assert(v.array == [-2, -1, 0, 1, 2, 3, 4, 5]);
+}
+
+unittest {
+    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+    v.erase(2, 4);
+    assert(v.array == [0, 1, 2, 5, 6]);
+    assert(v.size == 5);
+}
+
+unittest {
+    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+    assert(v.reserve(20));
+    assert(v.shrink());
+    assert(v.size == 7);
+}
+
+unittest {
+    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+    v.pop();
+    v.popFront();
+    assert(v.array == [1, 2, 3, 4, 5]);
+    v.clear();
+    assert(v.popFront() == int.init);
+    assert(v.pop() == int.init);
+    assert(v.size == 0);
+}
+
+unittest {
+    vector!int v = vector!int(0, 1, 2, 3);
+    v.insert(2, 12);
+    assert(v.array == [0, 1, 12, 2, 3]);
+    v.insert(0, 13);
+    assert(v.array == [13, 0, 1, 12, 2, 3]);
+    v.insert(v.size - 1, 14);
+    assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
+    v.insert(v.size, 15);
+    assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
+}
+
+unittest {
+    vector!int va = vector!int(0, 1);
+    vector!int vb = vector!int(2, 3);
+    va.swap(&vb);
+    assert(va.array == [2, 3]);
+    assert(vb.array == [0, 1]);
+}
+
+unittest {
+    vector!int v = vector!int(0);
+    v.clear();
+    assert(v.size == 0);
+    assert(v.capacity == 1);
+}
+
+
