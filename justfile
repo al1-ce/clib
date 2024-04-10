@@ -8,22 +8,36 @@ build: && build_test
     dub build
 
 build_test:
-    dub build :test
+    dub build :test_betterc --quiet
 
 run:
-    dub run :test
+    dub run :test_betterc
 
 test: build_test
-    # echo "EXPECT LEAK OF 72 BYTES UNTIL 23106 IS RESOLVED"
-    dub test --vquiet
+    dub test :betterc --vquiet
+    valgrind ./bin/clib-betterc-test-library
+    valgrind ./bin/clib_test_betterc
+
+test_nogc:
+    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
+    @dub build :test --quiet
+    @dub test --vquiet
     valgrind ./bin/clib-test-library
     valgrind ./bin/clib_test
+    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
 
-test_full: build_test
-    # echo "EXPECT LEAK OF 72 BYTES UNTIL 23106 IS RESOLVED"
-    dub test --vquiet
+test_nogc_full:
+    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
+    @dub build :test --quiet
+    @dub test --vquiet
     valgrind --leak-check=full --show-leak-kinds=all ./bin/clib-test-library
     valgrind --leak-check=full --show-leak-kinds=all ./bin/clib_test
+    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
+
+test_full: build_test
+    dub test :betterc --vquiet
+    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib-betterc-test-library
+    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib_test_betterc
 
 # Cheatsheet:
 # Set a variable (variable case is arbitrary)

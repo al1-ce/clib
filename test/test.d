@@ -74,13 +74,19 @@ void testLCase(L base) {
     reinterpret_cast!L(base).testLFunc();
 }
 
-extern(C) void main(int argc, char** argv) {
+extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
+// extern(C) void main(int argc, char** argv) {
+void main(string[] args) {
+
+    // { import core.memory; GC.disable(); }
     printf("Starting tests\n\n");
 
     printf("Testing extern(C++) class\n");
     CppClass cppClass = _new!CppClass(2, cast(char*) "Hello world".ptr);
     CppClassSecond cppClassSecond = _new!CppClassSecond();
 
+    CppClass co = new CppClass(2, cast(char*) "a".ptr);
+    import core.stdc.stdlib: free;
     printf("%s, %i, %i, %i\n", cppClass.b, cppClass.a, cppClass.c, cppClassSecond.get());
 
     _free(cppClass);

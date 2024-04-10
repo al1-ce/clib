@@ -1,5 +1,8 @@
 module clib;
 
+// Interesting article indeed
+// LINK: https://www.auburnsounds.com/blog/2016-11-10_Running-D-without-its-runtime.html
+
 public import
     // clib.algorithm,
     clib.allocator, // replace with clib.memory later
@@ -20,7 +23,6 @@ public import
     // clib.locale,
     // clib.map,
     // clib.memory,
-    // clib.new_,
     // clib.numeric,
     clib.optional,
     // clib.ostream,

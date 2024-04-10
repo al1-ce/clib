@@ -3,13 +3,20 @@ description "c++ stdlib and utils for D with betterC or nogc"
 authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
 license "GPL-3.0"
-dflags "-betterC"
 
 targetType "library"
 sourcePaths "src/"
 importPaths "src/"
 targetPath "bin/"
-// lflags "-L--defsym=_d_dso_registry" "-L--defsym=_D14TypeInfo_Class6__vtblZ"
+
+subPackage {
+    name "betterc"
+    targetType "library"
+    sourcePaths "src/"
+    importPaths "src/"
+    targetPath "bin/"
+    dflags "-betterC"
+}
 
 subPackage {
     name "test"
@@ -18,6 +25,15 @@ subPackage {
     importPaths "test/"
     targetPath "bin/"
     dependency "clib" version="*"
+}
+
+subPackage {
+    name "test_betterc"
+    targetType "executable"
+    sourcePaths "test/"
+    importPaths "test/"
+    targetPath "bin/"
+    dependency "clib:betterc" version="*"
     dflags "-betterC"
 }
 
