@@ -157,6 +157,8 @@ extern(C) void main(int argc, char** argv) {
     i.baseFunc();
     (dynamic_cast!CppClassd(i)).baseFunc();
 
+    _free(c);
+    _free(i);
 
     printf("Ending tests\n");
 }

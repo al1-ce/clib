@@ -8,6 +8,9 @@ And why it's called clib? Because it's a better**CLib**rary. But, despite the na
 
 <!--TODO: wiki --> TODO: a Wiki or something like it.
 
+## Most of clib's C++ STL features are PRE C++11
+I consider those features to be most essential. C++11 features will probably come after base features. Same for later C++ versions.
+
 ## C++ STL implementation list
 - [ ] algorithm
 - [ ] complex
