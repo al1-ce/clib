@@ -10,7 +10,7 @@ T reinterpret_cast(T, F)(F t) @nogc nothrow {
     return ( cast(T) cast(void*) t );
 }
 
-/// Downcasts F to T and returns null if unable to
+/// Downcasts F to T (CAN RETURN NULL IF UNABLE TO DOWNCAST)
 T dynamic_cast(T, F)(F t) @nogc nothrow if (isClass!T && isClass!F) {
     if (_typeid!(F)().isBaseOf!(T)()) {
         return ( cast(T) cast(void*) t );
@@ -19,7 +19,7 @@ T dynamic_cast(T, F)(F t) @nogc nothrow if (isClass!T && isClass!F) {
     }
 }
 
-/// Downcasts F to T or converts scalar types
+/// Downcasts F to T or converts scalar types (CAN RETURN NULL IF UNABLE TO DOWNCAST)
 T static_cast(T, F)(F t) @nogc nothrow
 if ((isClass!T && isClass!F) || (isScalar!T && isScalar!F)) {
     if (isScalarType!T) {

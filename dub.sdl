@@ -19,10 +19,10 @@ subPackage {
 }
 
 subPackage {
-    name "test"
+    name "test_nogc"
     targetType "executable"
-    sourcePaths "test/"
-    importPaths "test/"
+    sourcePaths "test/nogc/"
+    importPaths "test/nogc/"
     targetPath "bin/"
     dependency "clib" version="*"
 }
@@ -30,8 +30,8 @@ subPackage {
 subPackage {
     name "test_betterc"
     targetType "executable"
-    sourcePaths "test/"
-    importPaths "test/"
+    sourcePaths "test/betterc/"
+    importPaths "test/betterc/"
     targetPath "bin/"
     dependency "clib:betterc" version="*"
     dflags "-betterC"

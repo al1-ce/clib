@@ -4,40 +4,50 @@
 #
 # set positional-arguments
 
-build: && build_test
-    dub build
+build: && _make_gc _make_bc
 
-build_test:
-    dub build :test_betterc --quiet
+TEST_TGC := "./bin/clib_test_nogc"
+TEST_UGC := "./bin/clib-test-library"
 
-run:
-    dub run :test_betterc
+test_gc: _make_gc && (_check_leak TEST_UGC TEST_TGC) _warning_leak
 
-test: build_test
-    dub test :betterc --vquiet
-    valgrind ./bin/clib-betterc-test-library
-    valgrind ./bin/clib_test_betterc
+test_gc_full: _make_gc && (_check_full TEST_UGC TEST_TGC) _warning_leak
 
-test_nogc:
-    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
-    @dub build :test --quiet
+TEST_TBC := "./bin/clib_test_betterc"
+TEST_UBC := "./bin/clib-betterc-test-library"
+
+test_bc: _make_bc && (_check_leak TEST_UBC TEST_TBC)
+
+test_bc_full: _make_bc && (_check_full TEST_UBC TEST_TBC)
+
+test_all: && test_gc test_bc
+
+test_all_full: && test_gc_full test_bc_full
+
+_make_gc:
+    @dub build --quiet
+    @dub build :test_nogc --quiet
     @dub test --vquiet
-    valgrind ./bin/clib-test-library
-    valgrind ./bin/clib_test
-    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
 
-test_nogc_full:
-    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
-    @dub build :test --quiet
-    @dub test --vquiet
-    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib-test-library
-    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib_test
-    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
 
-test_full: build_test
-    dub test :betterc --vquiet
-    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib-betterc-test-library
-    valgrind --leak-check=full --show-leak-kinds=all ./bin/clib_test_betterc
+_make_bc:
+    @dub build :betterc --quiet
+    @dub build :test_betterc --quiet
+    @dub test :betterc --vquiet
+
+_clean_vgcore:
+    @-rm vgcore.*
+
+_check_leak PATH1 PATH2: && _clean_vgcore
+    valgrind {{PATH1}}
+    valgrind {{PATH2}}
+
+_check_full PATH1 PATH2: && _clean_vgcore
+    valgrind --leak-check=full --show-leak-kinds=all {{PATH1}}
+    valgrind --leak-check=full --show-leak-kinds=all {{PATH2}}
+
+_warning_leak:
+    @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"
 
 # Cheatsheet:
 # Set a variable (variable case is arbitrary)

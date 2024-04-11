@@ -1,25 +1,24 @@
-/// TypeInfo betterC alternative (WIP DO NOT USE)
+/// TypeInfo betterC alternative
 module clib.typeinfo;
 
 import core.stdc.string: strcmp;
 import core.internal.traits;
 
-import clib.classes;
 import clib.typecast;
-import clib.cstring;
+import clib.memory;
 
 /// Use this as parent for all `extern(C++)` classes
 /// if you want to have typeinfo
-extern(C++) class cppObject {
+extern(C++) abstract class CppObject {
     this() @nogc nothrow {}
 
-    /// Convert cppObject into human readable string
+    /// Convert CppObject into human readable string
     const(char*) toString() const @nogc nothrow {
         // return cast(char*) __traits(identifier, typeof(this)).ptr;
         return _typeid(this).name;
     }
 
-    /// Compute hash function for cppObject
+    /// Compute hash function for CppObject
     size_t toHash() const @trusted @nogc nothrow {
         size_t addr = cast(size_t) cast(void*) this;
         return addr ^ (addr >>> 4);
@@ -30,7 +29,7 @@ extern(C++) class cppObject {
     /// -1 if `this < o`
     ///  0 if `this == o`
     ///  1 if `this > o`
-    int opCmp(cppObject o) const @nogc nothrow {
+    int opCmp(CppObject o) const @nogc nothrow {
         size_t a = this.toHash();
         size_t b = o.toHash();
         if (a < b) return -1;
@@ -38,14 +37,14 @@ extern(C++) class cppObject {
         return 0;
     }
 
-    bool opEquals(cppObject o) const @nogc nothrow {
+    bool opEquals(CppObject o) const @nogc nothrow {
         return this is o;
     }
 
     private void __clib_cpp_object_identifier() {}
 }
 
-
+/// D's TypeInfo alternative
 struct type_info {
     /// Fully qualified type name
     const char* name = "\0".ptr;
@@ -53,15 +52,18 @@ struct type_info {
     const bool isPointer = false;
     /// Is type a function
     const bool isFunction = false;
-    private const char[] strName;
+    private const char[] _strName;
+    private bool _isACppObject = false;
 
+    /// Returns fully qualified type name
     const(char*) toString() const { return name; }
 
+    /// Returns 0
     size_t toHash() const @trusted @nogc nothrow {
         return 0;
     }
 
-    int opCmp(cppObject other) const @nogc nothrow {
+    int opCmp(CppObject other) const @nogc nothrow {
         return strcmp(name, _typeid(other).name);
     }
 
@@ -73,7 +75,7 @@ struct type_info {
         return name == other.name;
     }
 
-    bool opEquals(cppObject other) const @nogc nothrow {
+    bool opEquals(CppObject other) const @nogc nothrow {
         return name == _typeid(other).name;
     }
 
@@ -84,10 +86,12 @@ struct type_info {
 
     /// Ditto
     bool isBaseOf(T)() @nogc nothrow {
-        if (!isSubclassOfCppObject!T) return false;
+        if (isPointer || isFunction) return false;
         import core.stdc.string: strlen, memcmp;
+        if (!isSubclassOfCppObject!T) return false;
+        if (_isACppObject) return true;
         char[200] s = ' ';
-        char[] t = cast(char[]) strName;
+        char[] t = cast(char[]) _strName;
 
         s[0..2] = cast(char[]) "__";
 
@@ -121,13 +125,15 @@ type_info _typeid(T)() @nogc nothrow if (isSuitableForTypeID!T) {
         cast(const(char*)) __traits(fullyQualifiedName, Unqual!T).ptr,
         isPointer!T,
         isFunctionPointer!T || isDelegate!T,
-        cast(const(char[])) __traits(fullyQualifiedName, Unqual!T)
+        cast(const(char[])) __traits(fullyQualifiedName, Unqual!T),
+        is(T == CppObject)
     };
 
     return t;
 }
 
 private bool isSuitableForTypeID(T)() @nogc nothrow {
+    static if (is(T == interface)) return true;
     const bool isPtr = isAnyPointerType!T;
     static if (!isPtr) {
         return isSubclassOfCppObject!T;
@@ -146,7 +152,8 @@ private bool isAnyPointerType(T)() @nogc nothrow {
     return isPointer!T || isFunctionPointer!T || isDelegate!T;
 }
 
-mixin template RTTI(T) if (isSubclassOfCppObject!T) {
+/// Injects RunTime Type Information (allows type_info to see inheritance)
+mixin template RTTI(T) if ((isSubclassOfCppObject!T || is(T == interface)) && !is(T == CppObject)) {
     mixin( __cpp_class_inheritance_generator!T() );
 }
 

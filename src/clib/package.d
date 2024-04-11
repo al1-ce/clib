@@ -5,9 +5,7 @@ module clib;
 
 public import
     // clib.algorithm,
-    clib.allocator, // replace with clib.memory later
     // clib.bitset,
-    clib.classes,
     // clib.complex,
     // clib.deque,
     // clib.exception,
@@ -22,7 +20,7 @@ public import
     // clib.list,
     // clib.locale,
     // clib.map,
-    // clib.memory,
+    clib.memory,
     // clib.numeric,
     clib.optional,
     // clib.ostream,

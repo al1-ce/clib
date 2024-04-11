@@ -8,11 +8,10 @@ module clib.vector;
 // import core.stdc.stdlib: free, malloc, calloc, realloc;
 import core.stdc.string: memcpy, memcmp, strcpy, strcmp;
 
-import clib.allocator;
-import clib.classes;
+import clib.memory;
 
 /// betterC compatible dynamic size container
-struct vector(T, A = allocator!T) if (!is(T == bool)) {
+struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     private T* _data = null;
     private A _allocator = null;
 
@@ -94,11 +93,15 @@ struct vector(T, A = allocator!T) if (!is(T == bool)) {
     }
 
     /// Ditto
-    this(T* p_data, size_t p_size) { assign(p_data, p_size); }
+    this(T* p_data, size_t p_size) {
+        _allocator = _new!A();
+        assign(p_data, p_size);
+    }
 
     static if (is(T == char)) {
         /// Ditto
         this(string str) @nogc nothrow {
+            _allocator = _new!A();
             reserve(_size + str.length + 1);
             strcpy(&_data[_size], cast(char*) str.ptr);
             _size += str.length;

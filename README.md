@@ -1,18 +1,12 @@
 # clib
-c++ stdlib and utils for D with betterC
-
-<!--toc:start-->
-- [Why](#why)
-- [C++ STL implementation list](#c-stl-implementation-list)
-- [C++ utils implementation](#c-utils-implementation)
-- [C++ containers implementation](#c-containers-implementation)
-- [BetterC](#betterc)
-<!--toc:end-->
+c++ stdlib and utils for D with NoGC and BetterC
 
 ## Why
-D's standard library isn't really noGC and betterC friendly, so, why not make somewhat of a -betterC compatible runtime.
+D's standard library isn't really NoGC and betterC friendly, so, why not make somewhat of a -betterC compatible runtime.
 
-And why it's called clib? Because it's a better**CLib**rary. But, despite the name it's mainly noGC library with small amount betterC utilities.
+And why it's called clib? Because it's a better**CLib**rary. But, despite the name it's mainly NoGC library with small amount betterC utilities.
+
+<!--TODO: wiki --> TODO: a Wiki or something like it.
 
 ## C++ STL implementation list
 - [ ] algorithm
@@ -28,14 +22,14 @@ And why it's called clib? Because it's a better**CLib**rary. But, despite the na
 - [ ] iterator
 - [ ] limits
 - [ ] locale
-- [ ] memory (""partially implemented"" with ""allocator"")
+- [ ] memory ("partially implemented")
 - [ ] numeric
 - [ ] ostream
 - [ ] sstream
 - [ ] stdexcept
 - [ ] streambuf
 - [ ] strstream
-- [x] typeinfo (requires hacks due to angry TypeInfo)
+- [x] typeinfo (used only for extern(C++) classes)
 - [ ] utility
 
 ## C++ utils implementation
@@ -53,67 +47,79 @@ And why it's called clib? Because it's a better**CLib**rary. But, despite the na
 - [ ] valarray
 - [x] vector
 
-## BetterC
-Can be enabled when using `clib:betterc` as dependency instead of `clib`. Everything is same with exception of that `clib:betterc` compiles with `-betterC` flag, which will prevent linkage errors.
+## On classes
+D's keyword `new` can't be used with NoGC and to "fix" that there's two functions: `_new` and `_free` in `clib.memory` which can be used to create classes with NoGC (and -betterC).
 
-### On classes
-D's keyword `new` can't be used with -betterC since it uses TypeInfo and to "fix" that there's a module named `classes`. As of now it contains three functions: `_new`, `_free` and `_cast` which can be used to use classes with -betterC.
-
-#### IMPORTANT 1:
-There's a way to use classes without `classes` module. Instantiate your classes as:
+`clib.memory._new` can be used to construct class and allocate memory for it and `_free` can be used to forcefully free class.
 ```d
-__gshared CppClass c = new CppClass();
+import clib.memory;
+class Class {}
+
+void main() @nogc {
+    Class c = _new!Class();
+    _free(c);
+}
 ```
 
-#### IMPORTANT 2:
-If you want some alternative to D's `typeid` and `TypeInfo` then import `clib.typeinfo` and derive all your classes from `cppObject`. Albeit `type_info` can't provide with everything that `TypeInfo` provides since D does not provide any RTTI for C++ classes. Example of usage:
+## BetterC (EVERYTHING BELOW IS RELATED TO BETTERC)
+Can be enabled when using `clib:betterc` as dependency instead of `clib`. Everything is same with exception of that `clib:betterc` compiles with `-betterC` flag, which will prevent linkage errors.
+
+### Typecast
+`clib.typecast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690).
+```d
+import core.stdc.stdio;
+import clib.typecast;
+import clib.memory;
+
+extern(C++) class ICpp: CppObject {
+    void baseFunc() @nogc nothrow { printf("ICpp func\n"); }
+}
+
+extern(C++) class CppClass: ICpp {
+    mixin RTTI!ICpp;
+    override void baseFunc() @nogc nothrow { printf("CppClass func\n"); }
+}
+
+extern(C) int main() @nogc nothrow {
+    CppClass c = _new!CppClass();
+
+    void testBaseFunc(ICpp base) {
+        base.baseFunc();
+        reinterpret_cast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
+    }
+
+    testBaseFunc(c); // will case segfault!!!
+    testBaseFunc(reinterpret_cast!ICpp(c)); // must be a cast
+    reinterpret_cast!ICpp(c).testBaseFunc(); // or treat it as member
+}
+```
+
+### TypeInfo
+If you want some alternative to D's `typeid` and `TypeInfo` on `extern(C++)` classes then import `clib.typeinfo` and derive all your classes from `CppObject`. Albeit `type_info` can't provide with everything that `TypeInfo` provides since D does not provide any RTTI for C++ classes. Example of usage:
 ```d
 import clib.typeinfo;
 
-class CppRTTI: cppObject {
-    mixin RTTI!cppObject;
+// D way:
+class DClass {}
+class DChild: DClass{}
+DChild dprt;
+if (typeid(dprt) != typeid(DClass)) printf("Not same\n");
+if (typeid(DClass).isBaseOf(typeid(DChild))) printf("Is child\n");
+
+// Clib way:
+
+class CClass: CppObject {
+    // No need to do it for CppObject!
+    // mixin RTTI!CppObject;
 }
-class ChildCppRTTI: CppRTTI {
-    mixin RTTI!CppRTTI;
-}
-
-ChildCppRTTI cprt;
-if (_typeid(cprt) != _typeid!CppRTTI) printf("Not same\n");
-if (_typeid!CppRTTI().isBaseOf(cprt)) printf("Is child\n");
-```
-
-#### new
-`_new` can be used to construct class and allocate memory for it
-```d
-extern(C++) interface ICpp {  }
-extern(C++) class CppClass: ICpp {  }
-
-CppClass c = _new!CppClass();
-```
-
-`_free` can be used to forcefully free class
-```d
-/// Any of those will work
-_free(c);
-c._free();
-```
-
-`clib.typecast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690)
-```d
-import clib.typecast;
-reinterpret_cast!ICpp(t).icppFunc();
-somefunc( t.reinterpret_cast!ICpp );
-```
-
-It is important to know that -betterC places a lot of contraints. Most important ones are `new` keyword and no dynamic casts. `new` can be easily replaced with `_new!` or `__gshared ...`, but for dynamic casts you have to work around it unless `#21690` will be fixed
-```d
-void testBaseFunc(ICpp base) {
-    base.baseFunc();
-    reinterpret_cast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
+class CChild: CClass{
+    // Must be done for each parent, including interfaces
+    // but excluding CppObject
+    mixin RTTI!CClass;
 }
 
-testBaseFunc(c); // will case segfault!!!
-testBaseFunc(reinterpret_cast!ICpp(base)); // must be a reinterpret cast
-reinterpret_cast!ICpp(base).testBaseFunc(); // or treat it as member
+CChild cprt;
+if (_typeid(cprt) != _typeid!CClass) printf("Not same\n");
+if (_typeid!CClass().isBaseOf(cprt)) printf("Is child\n");
 ```
 

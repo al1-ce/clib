@@ -3,8 +3,7 @@ import clib;
 import core.stdc.stdio;
 
 extern(C++) {
-    class CppClass: cppObject {
-        mixin RTTI!cppObject;
+    class CppClass: CppObject {
         this(int p_a, char* p_b) @nogc nothrow {
             a = p_a;
             b = p_b;
@@ -31,7 +30,8 @@ extern(C++) {
         void testLFunc();
     }
 
-    class Base: L {
+    class Base: CppObject, L {
+        mixin RTTI!L;
         this() @nogc nothrow {
             puts("base construct");
         }
@@ -50,6 +50,7 @@ extern(C++) {
     }
 
     class Test: Base {
+        mixin RTTI!Base;
         int i;
         int y;
 
@@ -74,18 +75,13 @@ void testLCase(L base) {
     reinterpret_cast!L(base).testLFunc();
 }
 
-extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
-// extern(C) void main(int argc, char** argv) {
-void main(string[] args) {
-
-    // { import core.memory; GC.disable(); }
-    printf("Starting tests\n\n");
+extern(C) void main(int argc, char** argv) {
+    printf("Starting BETTERC tests\n\n");
 
     printf("Testing extern(C++) class\n");
     CppClass cppClass = _new!CppClass(2, cast(char*) "Hello world".ptr);
     CppClassSecond cppClassSecond = _new!CppClassSecond();
 
-    CppClass co = new CppClass(2, cast(char*) "a".ptr);
     import core.stdc.stdlib: free;
     printf("%s, %i, %i, %i\n", cppClass.b, cppClass.a, cppClass.c, cppClassSecond.get());
 
@@ -107,40 +103,66 @@ void main(string[] args) {
     printf("TESTING TYPEINFO\n");
     import core.internal.traits;
 
-    cppObject c = _new!cppObject;
     CppClass cp = _new!CppClass(1, cast(char*) "t".ptr);
-    cppObject cn = _new!CppClass(1, cast(char*) "t".ptr);
-    printf("hasMember - %s\n", __traits(hasMember, cppObject, "___type_info_identifier").asString.ptr);
-    printf("typeid.c.name - %s\n", _typeid(c).name);
+    CppObject cn = _new!CppClass(1, cast(char*) "t".ptr);
+    printf("hasMember - %s\n",        __traits(hasMember, CppObject, "___type_info_identifier").asString.ptr);
     printf("typeid.cp.name - %s\n", _typeid(cp).name);
-    printf("c.toString - %s\n", c.toString());
-    printf("c == cp - %s\n", (c == cp).asString.ptr);
     printf("typeid eq - %s\n", (_typeid(cn) == _typeid!CppClass).asString.ptr);
-    printf("typeid eq c - %s\n", (_typeid(cn) == c).asString.ptr);
     printf("is child - %s\n", (__traits(compiles, cast(Base) cp)).asString.ptr);
-    _free(c);
     _free(cp);
     _free(cn);
     printf("asString.typeid.name - %s\n", _typeid(&asString).name);
     int* testPtr;
     printf("testPtr.typeid.name - %s\n", _typeid(testPtr).name);
-    printf("cptr.typeid.name - %s\n", _typeid((&c)).name);
-
-    __gshared cppObject cv = new cppObject();
 
     printf("%s\n",
-        __traits(hasMember, CppClass, "__clib_typeinfo_cppObject_clib_parent").asString.ptr
+        __traits(hasMember, CppClass, "__clib_typeinfo_CppObject_clib_parent").asString.ptr
     );
 
     foreach (e; __traits(allMembers, CppClass)) {
         printf("%s\n", e.ptr);
     }
 
-    printf("%s\n", _typeid!cppObject.isBaseOf!CppClass().asString.ptr);
-    printf("%s\n", _typeid!CppClass.isBaseOf!cppObject().asString.ptr);
+    printf("%s\n", _typeid!CppObject.isBaseOf!CppClass().asString.ptr);
+    printf("%s\n", _typeid!CppClass.isBaseOf!CppObject().asString.ptr);
+
+    extern(C++) interface ICppe {}
+    extern(C++) class Cppe: CppObject, ICppe {
+        mixin RTTI!ICppe;
+    }
+    printf("child?false: %s\n", isAChild!(ICppe, Cppe).asString.ptr);
+    printf("child?true: %s\n", isAChild!(Cppe, ICppe).asString.ptr);
+    printf("child?true: %s\n", isAChild!(CppClass, CppObject).asString.ptr);
+    printf("child?false: %s\n", isAChild!(Cppe, CppClass).asString.ptr);
+    printf("sizeof Cppe: %llu\n", Cppe.sizeof);
 
     printf("\n");
+    version(D_BetterC) { printf("Test BetterC autoversion\n"); }
+
+    extern(C++) class ICppd: CppObject {
+        void baseFunc() @nogc nothrow { printf("ICpp func\n"); }
+    }
+
+    extern(C++) class CppClassd: ICppd {
+        mixin RTTI!ICppd;
+        override void baseFunc() @nogc nothrow { printf("CppClass func\n"); }
+    }
+
+    CppClassd c = _new!CppClassd();
+    ICppd i = _new!ICppd();
+
+    c.baseFunc();
+    (reinterpret_cast!ICppd(c)).baseFunc();
+
+    i.baseFunc();
+    (dynamic_cast!CppClassd(i)).baseFunc();
+
+
     printf("Ending tests\n");
+}
+
+bool isAChild(T, U)() {
+    return _typeid!U.isBaseOf!T;
 }
 
 void setInfo(T)(T* _data, size_t size ){
@@ -166,3 +188,4 @@ void vectorInfo(T)(vector!T* vec) {
 immutable(char)[] asString(bool val) {
     return val ? "true" : "false";
 }
+

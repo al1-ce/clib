@@ -5,8 +5,7 @@ module clib.set;
 
 import core.stdc.string: memcmp;
 
-import clib.allocator;
-import clib.classes;
+import clib.memory;
 
 /++
 Unique value container.
@@ -15,8 +14,8 @@ Default sorting order is `a > b` for non `char*` and `ctrcmp(a, b) > 0` for `cha
 Default sorting algorithm is bubble sort.
 
 Prefer inserting values by bulk because it sorts after each `insert` call.
-++/
-struct set(T, alias Compare = sortFunction, A = allocator!T) {
+++/import clib.typeinfo;
+struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
     private T* _data = null;
     private A _allocator = null;
 
