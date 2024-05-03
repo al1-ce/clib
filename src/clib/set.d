@@ -1,5 +1,8 @@
+// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /++
-betterC compatible associative container that contains a sorted set of unique objects
+noGC compatible associative container that contains a sorted set of unique objects
 +/
 module clib.set;
 
@@ -79,12 +82,12 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
     }
 
     /// Ditto
-    bool opEquals(T[] other) const @nogc nothrow {
+    bool opEquals(const T[] other) const @nogc nothrow {
         if (!_size == other.length) return false;
         return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
     }
     /// Ditto
-    bool opEquals(size_t N)(T[N] other) const @nogc nothrow {
+    bool opEquals(size_t N)(const T[N] other) const @nogc nothrow {
         if (!_size == other.length) return false;
         return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
     }

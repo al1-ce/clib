@@ -1,10 +1,10 @@
 # clib
-c++ stdlib and utils for D with NoGC and BetterC
+c++ stdlib and utils for D with noGC
 
 ## Why
-D's standard library isn't really NoGC and betterC friendly, so, why not make somewhat of a -betterC compatible runtime.
+D's standard library isn't really noGC friendly, so, why not make somewhat of a noGC compatible runtime.
 
-And why it's called clib? Because it's a better**CLib**rary. But, despite the name it's mainly NoGC library with small amount betterC utilities.
+And why it's called clib? Because it's a better**CLib**rary. But, despite the name it's mainly noGC library.
 
 <!--TODO: wiki --> TODO: a Wiki or something like it.
 
@@ -14,7 +14,7 @@ I consider those features to be most essential. C++11 features will probably com
 ## C++ STL implementation list
 - [ ] algorithm
 - [ ] complex
-- [ ] exception
+- [-] exception (partially implemented, but more as release-compatible asserts)
 - [ ] fstream
 - [ ] functional
 - [ ] iomanip
@@ -25,7 +25,7 @@ I consider those features to be most essential. C++11 features will probably com
 - [ ] iterator
 - [ ] limits
 - [ ] locale
-- [ ] memory ("partially implemented")
+- [-] memory (partially implemented, has Mallocator, `_new` and `_free`)
 - [ ] numeric
 - [ ] ostream
 - [ ] sstream
@@ -40,18 +40,22 @@ I consider those features to be most essential. C++11 features will probably com
 - [x] optional
 
 ## C++ containers implementation
-- [ ] deque
+- [-] deque (do not plan to implement it, not sure how to be completely honest, PR's are welcome though)
 - [ ] list
 - [ ] map
-- [ ] queue
+- [x] queue
 - [x] set
-- [ ] stack
+- [x] stack
 - [x] string (technically is an alias to `vector!char` with static if shenanigans. WIP)
-- [ ] valarray
+- [-] valarray (same as deque)
 - [x] vector
 
+# Custom modules
+- [-] format (exists in C++20 specs, but my version currently is for emulating c's format function)
+- [-] conv (just your normal type conversion)
+
 ## On classes
-D's keyword `new` can't be used with NoGC and to "fix" that there's two functions: `_new` and `_free` in `clib.memory` which can be used to create classes with NoGC (and -betterC).
+D's keyword `new` can't be used with noGC and to "fix" that there's two functions: `_new` and `_free` in `clib.memory` which can be used to create classes with noGC.
 
 `clib.memory._new` can be used to construct class and allocate memory for it and `_free` can be used to forcefully free class.
 ```d
@@ -64,11 +68,39 @@ void main() @nogc {
 }
 ```
 
-## BetterC (EVERYTHING BELOW IS RELATED TO BETTERC)
-Can be enabled when using `clib:betterc` as dependency instead of `clib`. Everything is same with exception of that `clib:betterc` compiles with `-betterC` flag, which will prevent linkage errors.
+## extern(C++)
+### TypeInfo (only use for extern(C++) classes)
+To enable add `versions "CLIB_USE_TYPEINFO"` to `dub.sdl` or `-version=CLIB_USE_TYPEINFO` as compiler flag. 
 
-### Typecast
-`clib.typecast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690).
+If you want some alternative to D's `typeid` and `TypeInfo` on `extern(C++)` classes then import `clib.typeinfo` and derive all your classes from `CppObject`. Albeit `type_info` can't provide with everything that `TypeInfo` provides since D does not provide any RTTI for C++ classes. Example of usage:
+```d
+import clib.typeinfo;
+
+// D way:
+class DClass {}
+class DChild: DClass{}
+DChild dprt;
+if (typeid(dprt) != typeid(DClass)) printf("Not same\n");
+if (typeid(DClass).isBaseOf(typeid(DChild))) printf("Is child\n");
+
+// Clib way:
+
+class CClass: CppObject {
+    // No need to do it for CppObject!
+    // mixin RTTI!CppObject;
+}
+class CChild: CClass{
+    // Must be done for each parent, including interfaces
+    // but excluding CppObject
+    mixin RTTI!CClass;
+}
+
+CChild cprt;
+if (_typeid(cprt) != _typeid!CClass) printf("Not same\n");
+if (_typeid!CClass().isBaseOf(cprt)) printf("Is child\n");
+```
+
+`clib.typeinfo.reinterpret_cast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690).
 ```d
 import core.stdc.stdio;
 import clib.typecast;
@@ -97,32 +129,19 @@ extern(C) int main() @nogc nothrow {
 }
 ```
 
-### TypeInfo
-If you want some alternative to D's `typeid` and `TypeInfo` on `extern(C++)` classes then import `clib.typeinfo` and derive all your classes from `CppObject`. Albeit `type_info` can't provide with everything that `TypeInfo` provides since D does not provide any RTTI for C++ classes. Example of usage:
-```d
-import clib.typeinfo;
+## Development
+- [dmd / ldc / gdc](https://dlang.org/) - D compiler
+- [dub](https://code.dlang.org/) - D package manager
+- [just](https://github.com/casey/just) - Make system
+- [valgrind](https://valgrind.org/) - Memory checker
+- [reuse](https://reuse.software/) - See [License](#license)
 
-// D way:
-class DClass {}
-class DChild: DClass{}
-DChild dprt;
-if (typeid(dprt) != typeid(DClass)) printf("Not same\n");
-if (typeid(DClass).isBaseOf(typeid(DChild))) printf("Is child\n");
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-// Clib way:
+## License
+- Copy of used licenses can be found in `LICENSES` folder. Main license can be found in [LICENSE](LICENSE) file.
+- List of authors can be found in [AUTHORS.md](/AUTHORS.md).
 
-class CClass: CppObject {
-    // No need to do it for CppObject!
-    // mixin RTTI!CppObject;
-}
-class CChild: CClass{
-    // Must be done for each parent, including interfaces
-    // but excluding CppObject
-    mixin RTTI!CClass;
-}
-
-CChild cprt;
-if (_typeid(cprt) != _typeid!CClass) printf("Not same\n");
-if (_typeid!CClass().isBaseOf(cprt)) printf("Is child\n");
-```
+This project is [REUSE](https://reuse.software/) compliant.
 

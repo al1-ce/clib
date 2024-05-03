@@ -4,47 +4,40 @@
 #
 # set positional-arguments
 
-build: && _make_gc _make_bc
+build: && _make
 
-TEST_TGC := "./bin/clib_test_nogc"
-TEST_UGC := "./bin/clib-test-library"
+TEST_UNIT := "./bin/clib-test-library"
 
-test_gc: _make_gc && (_check_leak TEST_UGC TEST_TGC) _warning_leak
+test: _make && (_check_leak TEST_UNIT) _warning_leak
 
-test_gc_full: _make_gc && (_check_full TEST_UGC TEST_TGC) _warning_leak
+test_full: _make && (_check_full TEST_UNIT) _warning_leak
 
-TEST_TBC := "./bin/clib_test_betterc"
-TEST_UBC := "./bin/clib-betterc-test-library"
+test_complete:
+    dub build     --compiler dmd
+    dub test      --compiler dmd
 
-test_bc: _make_bc && (_check_leak TEST_UBC TEST_TBC)
+    dub build     --compiler ldc2
+    dub test      --compiler ldc2
 
-test_bc_full: _make_bc && (_check_full TEST_UBC TEST_TBC)
+    dub build     --compiler gdc
+    dub test      --compiler gdc
 
-test_all: && test_gc test_bc
-
-test_all_full: && test_gc_full test_bc_full
-
-_make_gc:
-    @dub build --quiet
-    @dub build :test_nogc --quiet
+unit: && _clean_vgcore _warning_leak
     @dub test --vquiet
+    valgrind {{TEST_UNIT}}
 
-
-_make_bc:
-    @dub build :betterc --quiet
-    @dub build :test_betterc --quiet
-    @dub test :betterc --vquiet
+_make:
+    @dub build       --quiet
+    @dub test        --vquiet
 
 _clean_vgcore:
     @-rm vgcore.*
 
-_check_leak PATH1 PATH2: && _clean_vgcore
+_check_leak PATH1: && _clean_vgcore
     valgrind {{PATH1}}
-    valgrind {{PATH2}}
 
-_check_full PATH1 PATH2: && _clean_vgcore
+_check_full PATH1: && _clean_vgcore
     valgrind --leak-check=full --show-leak-kinds=all {{PATH1}}
-    valgrind --leak-check=full --show-leak-kinds=all {{PATH2}}
 
 _warning_leak:
     @echo "EXPECT LEAK OF <=72 BYTES UNTIL 23106 IS RESOLVED"

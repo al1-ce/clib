@@ -1,11 +1,26 @@
-/// TypeInfo betterC alternative
+// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/// extern(C++) TypeInfo alternative
 module clib.typeinfo;
 
-import core.stdc.string: strcmp;
-import core.internal.traits;
+// To prevent usage without reading readme (I hate when people are not reading readme)
+version(D_BetterC) { version = CLIB_USE_TYPEINFO; }
+version(CLIB_USE_TYPEINFO):
 
-import clib.typecast;
+import core.stdc.string: strcmp;
+import clib.traits;
+
 import clib.memory;
+
+/// LINK: https://github.com/ldc-developers/ldc/issues/2425
+/// HACK: _d_array_slice_copy
+version(LDC) extern(C) void _d_array_slice_copy(void* dst, size_t dstlen, void* src, size_t srclen, size_t elemsz){
+    import ldc.intrinsics;
+    llvm_memcpy!size_t(dst, src, dstlen * elemsz, 0);
+}
+
+// TODO: maybe store rtti in char[][]?
 
 /// Use this as parent for all `extern(C++)` classes
 /// if you want to have typeinfo
@@ -41,7 +56,7 @@ extern(C++) abstract class CppObject {
         return this is o;
     }
 
-    private void __clib_cpp_object_identifier() {}
+    void __clib_cpp_object_identifier() {}
 }
 
 /// D's TypeInfo alternative
@@ -96,10 +111,11 @@ struct type_info {
         s[0..2] = cast(char[]) "__";
 
         for (int i = 0 ; i < t.length; ++i) {
-            if (t[i] == '.') {
-                s[2 + i] = '_';
+            char c = t[i];
+            if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ) {
+                s[2 + i] = c;
             } else {
-                s[2 + i] = t[i];
+                s[2 + i] = '_';
             }
         }
 
@@ -165,15 +181,52 @@ char[200] __cpp_class_inheritance_generator(T)() {
     s[0..7] = cast(char[]) "void __";
 
     for (int i = 0 ; i < t.length; ++i) {
-        if (t[i] == '.') {
-            s[7 + i] = '_';
+        char c = t[i];
+        if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ) {
+            s[7 + i] = c;
         } else {
-            s[7 + i] = t[i];
+            s[7 + i] = '_';
         }
     }
 
     s[(7 + t.length)..(7 + t.length + 18)] = "_clib_parent (){}\0";
-
     return s;
 }
+
+// TODO: add separate cast versions for C++ linkage and D classes
+
+/// Interprets F as T (dangerous, use mainly as workaround to bug 21690)
+T reinterpret_cast(T, F)(F t) @nogc nothrow {
+    return ( cast(T) cast(void*) t );
+}
+
+/// Downcasts F to T (CAN RETURN NULL IF UNABLE TO DOWNCAST)
+T dynamic_cast(T, F)(F t) @nogc nothrow if (isClass!T && isClass!F) {
+    if (_typeid!(F)().isBaseOf!(T)()) {
+        return ( cast(T) cast(void*) t );
+    } else {
+        return null;
+    }
+}
+
+/// Downcasts F to T or converts scalar types (CAN RETURN NULL IF UNABLE TO DOWNCAST)
+T static_cast(T, F)(F t) @nogc nothrow
+if ((isClass!T && isClass!F) || (isScalar!T && isScalar!F)) {
+    if (isScalarType!T) {
+        return cast(T) t;
+    } else {
+        return dynamic_cast!(T, F)(t);
+    }
+}
+
+/// Performs basic type casting
+T const_cast(T, F)(F t) @nogc nothrow {
+    return cast(T) t;
+}
+
+private enum bool isScalar(T) = __traits(isScalar, T) && is(T : real);
+
+private enum bool isClass(T) =
+    (is(T == U*, U) && (is(T == class) || is(T == interface))) ||
+    (is(T == class) || is(T == interface));
 

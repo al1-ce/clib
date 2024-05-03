@@ -1,5 +1,8 @@
+// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /++
-betterC compatible dynamic size container.
+noGC compatible dynamic size container.
 
 Most of functionality is taken directly from cpp's std::vector with minor changes
 +/
@@ -9,20 +12,21 @@ module clib.vector;
 import core.stdc.string: memcpy, memcmp, strcpy, strcmp;
 
 import clib.memory;
+import clib.iterator;
 
-/// betterC compatible dynamic size container
+/// noGC compatible dynamic size container
 struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     private T* _data = null;
     private A _allocator = null;
 
-    size_t _capacity = 0;
-    size_t _size = 0;
+    private size_t _capacity = 0;
+    private size_t _size = 0;
+
+    // // See copy ctor
+    // private size_t* _refCounter;
 
     /// Returns pointer to data array
     @property T* data() @nogc nothrow { return _data; }
-
-    /// Ditto
-    alias ptr = data;
 
     /// Returns array
     @property T[] array() @nogc nothrow { return _data[0.._size]; }
@@ -33,9 +37,6 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns number of elements contained in vector
     @property size_t size() @nogc nothrow { return _size; }
 
-    /// Ditto
-    alias length = size;
-
     /// Returns true if vector is empty, i.e `size == 0`
     @property bool empty() @nogc nothrow { return _size == 0; }
 
@@ -45,13 +46,22 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns first element or `T.init` if `size == 0`
     @property T front() @nogc nothrow { return _size == 0 ? T.init : _data[0]; }
 
+    /// Returns iterator to beginning
+    @property forward_iterator!(vector!(T, A), T) begin() @nogc nothrow {
+        return forward_iterator!(vector!(T, A), T)(this, _size);
+    }
+    /// Returns iterator to end
+    @property backward_iterator!(vector!(T, A), T) end() @nogc nothrow {
+        return backward_iterator!(vector!(T, A), T)(this, _size);
+    }
+
     /++ Returns data pointer and clears vector
         IMPORTANT: Data pointer must be freed manually
     +/
-    @property T* steal() @nogc nothrow {
+    @property T* release() @nogc nothrow {
         T* tmp = _data;
         _data = null;
-        clear();
+        free();
         return tmp;
     }
 
@@ -92,12 +102,6 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         memcpy(_data, p_data.ptr, p_data.length * T.sizeof);
     }
 
-    /// Ditto
-    this(T* p_data, size_t p_size) {
-        _allocator = _new!A();
-        assign(p_data, p_size);
-    }
-
     static if (is(T == char)) {
         /// Ditto
         this(string str) @nogc nothrow {
@@ -108,7 +112,59 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         }
     }
 
-    ~this() @nogc nothrow { free(); }
+    // Copy ctor
+    this(ref scope vector!(T, A) other) @nogc nothrow {
+        // // I'm just going to leave it here
+        // // Make type be passed by reference
+        // // Fun stuff, but probably no
+        // if (other._refCounter is null) {
+        //     import core.stdc.stdlib;
+        //     other._refCounter = cast(size_t*) malloc(size_t.sizeof);
+        //     if (other_refCounter is null) {} // handle fail
+        //     other._refCounter[0] = 1;
+        // }
+        // _refCounter = other._refCounter;
+        // _data = other._data;
+        // _size = other._size;
+        // _capacity = other._capacity;
+        // _refCounter[0] += 1;
+        assignCopy(other._data, other._size);
+    }
+
+    ~this() @nogc nothrow {
+        // // See copy ctor
+        // if (_refCounter is null) return;
+        // _refCounter[0] -= 1;
+        // if (_refCounter[0] == 0) {
+        //     import core.stdc.stdlib: cfree = free;
+        //     cfree(_refCounter);
+        //     free();
+        // }
+        free();
+    }
+
+    /// Returns copy of this vector
+    scope vector!(T, A) clone() @nogc nothrow {
+        vector!(T, A) v;
+        v.assignCopy(_data, _size);
+        return v;
+    }
+
+    /// Returns true if vector contains value
+    bool has(T val) @nogc nothrow {
+        for (int i = 0; i < _size; ++i) {
+            if (_data[i] == val) return true;
+        }
+        return false;
+    }
+
+    /// Returns index of value or -1 (size_t.max == -1)
+    size_t find(T val) @nogc nothrow {
+        for (int i = 0; i < _size; ++i) {
+            if (_data[i] == val) return i;
+        }
+        return -1;
+    }
 
     /// Length of vector
     size_t opDollar() @nogc nothrow const { return _size; }
@@ -134,7 +190,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Ditto
     void opOpAssign(string op: "~")(T[] arr) @nogc nothrow { push(arr); }
     /// Ditto
-    void opOpAssign(string op: "~")(vector!T vec) @nogc nothrow { push(vec.array); }
+    void opOpAssign(string op: "~")(ref vector!T vec) @nogc nothrow { push(vec.array); }
 
     static if (is(T == char)) {
         /// Ditto
@@ -147,8 +203,6 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     /// Ditto
     void opIndexAssign(T val, size_t index) @nogc nothrow { _data[index] = val; }
-    /// Ditto
-    void opIndexAssign(T val) @nogc nothrow { _data[0 .. _size] = val; }
 
     /// Returns element of vector
     T opIndex(size_t p_position) @nogc nothrow { return _data[p_position]; }
@@ -163,66 +217,71 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     // bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) const @nogc nothrow;
     /// Compares vector to value
     /// `vector!T other` is `ref` to prevent dtor() from being called
-    bool opEquals(M)(ref vector!(T, M) other) const @nogc nothrow {
+    bool opEquals(M)(ref const vector!(T, M) other) const @nogc nothrow {
         if (_data == null) return false;
         if (other._data == null) return false;
         if (other._size != _size) return false;
         return memcmp(_data, other._data, _size * T.sizeof) == 0;
     }
+
     /// Ditto
-    bool opEquals(T[] other) const @nogc nothrow {
-        if (_data == null) return false;
-        if (_size != other.length) return false;
-        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
-    }
-    /// Ditto
-    bool opEquals(size_t N)(T[N] other) const @nogc nothrow {
+    bool opEquals(const T[] other) const @nogc nothrow {
         if (_data == null) return false;
         if (_size != other.length) return false;
         return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
     }
 
-    // TODO: possibly opBinary(~) since ref seems to work
+    /// Ditto
+    bool opEquals(size_t N)(const T[N] other) const @nogc nothrow {
+        if (_data == null) return false;
+        if (_size != other.length) return false;
+        return memcmp(_data, other.ptr, _size * T.sizeof) == 0;
+    }
 
-    vector!T opBinary(string op: "~")(T other) @nogc nothrow {
+    size_t toHash() const @nogc nothrow {
+        /// FIXME: implement proper hashing
+        return 0;
+    }
+
+    scope vector!T opBinary(string op: "~")(T other) @nogc nothrow {
         vector!T v = vector!T(_data[0.._size]);
         v ~= other;
         return v;
     }
 
-    vector!T opBinary(string op: "~")(T[] other) @nogc nothrow {
+    scope vector!T opBinary(string op: "~")(T[] other) @nogc nothrow {
         vector!T v = vector!T(_data[0.._size]);
         v ~= other;
         return v;
     }
 
-    vector!T opBinary(string op: "~")(ref vector!T other) @nogc nothrow {
+    scope vector!T opBinary(string op: "~")(ref vector!T other) @nogc nothrow {
         vector!T v = vector!T(_data[0.._size]);
         v ~= other.array;
         return v;
     }
 
-    vector!T opBinaryRight(string op: "~")(T other) @nogc nothrow {
+    scope vector!T opBinaryRight(string op: "~")(T other) @nogc nothrow {
         vector!T v = vector!T(other);
         v ~= _data[0.._size];
         return v;
     }
 
-    vector!T opBinaryRight(string op: "~")(T[] other) @nogc nothrow {
+    scope vector!T opBinaryRight(string op: "~")(T[] other) @nogc nothrow {
         vector!T v = vector!T(other);
         v ~= _data[0.._size];
         return v;
     }
 
     static if (is(T == char)) {
-        vector!char opBinary(string op: "~")(string str) @nogc nothrow {
+        scope vector!char opBinary(string op: "~")(string str) @nogc nothrow {
             vector!char v;
             v ~= _data[0.._size];
             v ~= str;
             return v;
         }
 
-        vector!char opBinaryRight(string op: "~")(string str) @nogc nothrow {
+        scope vector!char opBinaryRight(string op: "~")(string str) @nogc nothrow {
             vector!char v;
             v ~= str;
             v ~= _data[0.._size];
@@ -230,13 +289,28 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         }
     }
 
-    /// Assigns new data to vector with size and capacity set to `p_size`
-    void assign( T* p_data, size_t p_size ) @nogc nothrow {
+    /++
+    Assigns new data to vector with size and capacity set to `p_size`
+
+    DO NOT USE ON STACK-ALLOCATED MEMORY (WILL SEGFAULT)!
+    +/
+    void assignPointer( T* p_data, size_t p_size ) @nogc nothrow {
+        if (_allocator is null) _allocator = _new!A();
+        if (_capacity != 0 || _data !is null) _allocator.deallocate(_data);
+        _size = p_size;
+        _capacity = p_size;
+        _data = p_data;
+    }
+
+    /// Copies data to vector and sets size and capacity to `p_size`
+    void assignCopy( T* p_data, size_t p_size ) @nogc nothrow {
+        if (_allocator is null) _allocator = _new!A();
         resize(p_size);
         _size = p_size;
         _capacity = p_size;
         memcpy(_data, p_data, p_size * T.sizeof);
     }
+
 
     /// Allocates memory for `p_size` elements if `p_size > capacity`
     /// Returns true on success
@@ -330,19 +404,21 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         --_size;
     }
 
-    /// Removes elements between `p_start` and `p_end`, including `p_end`
+    /// Removes elements between `p_start` and `p_end`, including start and end
     /// If `p_end >= size` then `p_end = size - 1`
     /// If `p_end <= p_start` then it does nothing
     void erase(size_t p_start, size_t p_end) @nogc nothrow {
         if (_size == 0) return;
-        if (p_end >= _size) p_end = _size - 1;
-        if (p_end <= p_start) return;
-        if (p_end == _size - 1) {_size = p_start + 1; return;}
-        size_t diff = p_end - p_start;
+        if (p_end < p_start) return;
+        if (p_start >= _size) return;
+        if (p_end == p_start) { erase(p_start); return; }
+        if (p_end >= _size) { _size = p_start + 1; return; }
+        size_t diff = p_end - p_start + 1;
+        size_t nmax = _size - diff;
 
-        for (size_t i = 1; i < diff + 1; ++i) {
-            if (p_end + i >= _size) break;
-            _data[p_start + i] = _data[p_end + i];
+        for (size_t i = 0; i < nmax; ++i) {
+            if (p_end + i + 1 >= _size) break;
+            _data[p_start + i] = _data[p_end + 1 + i];
         }
 
         _size -= diff;
@@ -359,6 +435,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
             void* newData;
             newData = _allocator.reallocate(_data, _size * T.sizeof);
             if (newData is null) return false;
+            import std.traits;
             _data = cast(T*) newData;
             _capacity = _size;
         }
@@ -473,6 +550,14 @@ unittest {
 }
 
 unittest {
+    vector!int a = vector!int(1, 2, 3, 4);
+    vector!int b = vector!int(1, 2, 3, 4);
+    assert(a == b);
+    b = vector!int(1, 2, 3, 5);
+    assert(a != b);
+}
+
+unittest {
     int[3] a = [1, 2, 3];
     vector!int v = vector!int(3, 2, 1);
     assert(v != a);
@@ -499,14 +584,20 @@ unittest {
 }
 
 unittest {
-    import core.stdc.string;
     int[4] data = [1, 2, 3, 4];
-    vector!int v;
-    v.assign(data.ptr, 4);
-    assert(v[0..$] == [1, 2, 3, 4]);
+    vector!int k;
+    k.assignCopy(data.ptr, 4);
+    assert(k[0..$] == [1, 2, 3, 4]);
+    k.free();
 
-    vector!int k = vector!int(data.ptr, 4);
+    import core.stdc.string;
+    import core.stdc.stdlib;
+    int* d = cast(int*) malloc(4 * int.sizeof);
+    memcpy(d, data.ptr, 4 * int.sizeof);
+    vector!int v;
+    v.assignPointer(d, 4);
     assert(v[0..$] == [1, 2, 3, 4]);
+    v.free();
 }
 
 unittest {
@@ -536,10 +627,24 @@ unittest {
 }
 
 unittest {
+    vector!char c = "words are not enough";
+    c.erase(9, 12);
+    assert(c.array == "words are enough", c.array);
     vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
-    v.erase(2, 4);
+    v.erase(3, 4);
     assert(v.array == [0, 1, 2, 5, 6]);
     assert(v.size == 5);
+    vector!int q = vector!int(0, 1, 2, 3, 4, 5, 6, 7, 8);
+    q.erase(2, 5);
+    assert(q.array == [0, 1, 6, 7, 8]);
+    assert(q.size == 5);
+    q.erase(0, 1);
+    assert(q.array == [6, 7, 8]);
+    assert(q.size == 3);
+    q.erase(1, 2);
+    assert(q.array == [6]);
+    assert(q.size == 1);
+
 }
 
 unittest {
@@ -612,8 +717,8 @@ unittest {
     vector!char v = "test";
     char[5] a = ['t', 'e', 's', 't', '\0'];
     import core.stdc.string: strcmp;
-    assert(strcmp(v.stringz.ptr, a.ptr) == 0);
-    char* sz = v.stringz.steal;
+    assert(strcmp(v.stringz.data, a.ptr) == 0);
+    char* sz = v.stringz.release();
     assert(strcmp(sz, a.ptr) == 0);
     import core.stdc.stdlib;
     free(sz);

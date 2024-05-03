@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /++
 Utilities for memory management
 +/
@@ -28,13 +31,13 @@ T _new(T, Args...)(auto ref Args args) @nogc nothrow {
     T t = () @trusted {
         import core.memory : pureMalloc;
         auto _t = cast(T) pureMalloc(tsize);
-        if (!_t) return null;
+        if (_t is null) return null;
         import core.stdc.string : memcpy;
         // Copies initial state of T (initSymbol -> const(void)[]) into _t
         memcpy(cast(void*) _t, __traits(initSymbol, T).ptr, tsize);
         return _t;
     }();
-    if (!t) return null;
+    if (t is null) return null;
 
     import core.lifetime : forward;
     // Actual construction
@@ -52,83 +55,64 @@ void _free(T)(ref T t) @nogc nothrow {
     static if (__traits(compiles, { t = null; })) t = null;
 }
 
-// NOT D_BetterC
-version(D_BetterC) {} else {
-    /// Default allocator
-    alias allocator = Mallocator;
+/// Default allocator
+alias allocator = Mallocator;
 
-    /// Unmanaged allocator (a wrapper over malloc)
-    class Mallocator(T): IAllocator!T if (isValidAlloccatorType!T()) {
+/// Unmanaged allocator (a wrapper over malloc)
+class Mallocator(T): IAllocator!T if (isValidAlloccatorType!T()) {
 
-        /// Allocator has no state
-        this() @nogc nothrow {}
-        /// Ditto
-        ~this() @nogc nothrow {}
+    /// Allocator has no state
+    this() @nogc nothrow {}
+    /// Ditto
+    ~this() @nogc nothrow {}
 
-        /// Allocates new chunk of memory
-        T* allocate(const size_t size, const size_t alignment = 0) @nogc nothrow {
-            return cast(T*) malloc(size);
-        }
-
-        /// Reallocates memory
-        T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow {
-            return cast(T*) realloc(ptr, size);
-        }
-
-        /// Deallocates memory
-        void deallocate(T* memory) @nogc nothrow {
-            free(cast(void*) memory);
-        }
+    /// Allocates new chunk of memory
+    T* allocate(const size_t size, const size_t alignment = 0) @nogc nothrow {
+        return cast(T*) allocate_vptr(size, alignment);
     }
 
-    interface IAllocator(T) {
-        T* allocate(const size_t, const size_t) @nogc nothrow;
-        T* reallocate(T*, const size_t, const size_t) @nogc nothrow;
-        void deallocate(T*) @nogc nothrow;
+    /// Ditto
+    void* allocate_vptr(const size_t size, const size_t alignment = 0) @nogc nothrow {
+        return malloc(size);
     }
+
+    /// Reallocates memory
+    T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow {
+        return cast(T*) reallocate_vptr(cast(void*) ptr, size, alignment);
+    }
+
+    /// Ditto
+    void* reallocate_vptr(void* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow {
+        return realloc(ptr, size);
+    }
+
+    /// Deallocates memory
+    void deallocate(T* memory) @nogc nothrow {
+        free(cast(void*) memory);
+    }
+
+    /// Ditto
+    void deallocate_vptr(void* memory) @nogc nothrow {
+        free(memory);
+    }
+}
+
+interface IAllocator(T) {
+    /// Allocates new chunk of memory
+    T* allocate(const size_t size, const size_t alignment = 0) @nogc nothrow;
+    /// Ditto
+    void* allocate_vptr(const size_t size, const size_t alignment = 0) @nogc nothrow;
+    /// Reallocates memory
+    T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow;
+    /// Ditto
+    void* reallocate_vptr(void* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow;
+    /// Deallocates memory
+    void deallocate(T* ptr) @nogc nothrow;
+    /// Ditto
+    void deallocate_vptr(void* ptr) @nogc nothrow;
 }
 
 private bool isValidAlloccatorType(T)() @nogc nothrow {
-    return !is(T == const) && !is(T == immutable) && !is(T == class);
-}
-
-// We want different things because why bother with extern
-// when normal classes work normally
-version(D_BetterC) {
-    import clib.typeinfo;
-
-    /// Default allocator
-    alias allocator = Mallocator;
-
-    /// Unmanaged allocator (a wrapper over malloc)
-    extern(C++) class Mallocator(T): cppObject, IAllocator!T if (isValidAlloccatorType!T()) {
-        mixin RTTI!IAllocator;
-
-        /// Allocator has no state
-        this() @nogc nothrow {}
-        /// Ditto
-        ~this() @nogc nothrow {}
-
-        /// Allocates new chunk of memory
-        T* allocate(const size_t size, const size_t alignment = 0) @nogc nothrow {
-            return cast(T*) malloc(size);
-        }
-
-        /// Reallocates memory
-        T* reallocate(T* ptr, const size_t size, const size_t alignment = 0) @nogc nothrow {
-            return cast(T*) realloc(ptr, size);
-        }
-
-        /// Deallocates memory
-        void deallocate(T* memory) @nogc nothrow {
-            free(cast(void*) memory);
-        }
-    }
-
-    extern(C++) interface IAllocator(T) {
-        T* allocate(const size_t, const size_t) @nogc nothrow;
-        T* reallocate(T*, const size_t, const size_t) @nogc nothrow;
-        void deallocate(T*) @nogc nothrow;
-    }
+    return !is(T == const) && !is(T == immutable);
 }
 

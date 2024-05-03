@@ -1,5 +1,5 @@
 name "clib"
-description "c++ stdlib and utils for D with betterC or nogc"
+description "c++ stdlib and utils for D with noGC"
 authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
 license "GPL-3.0"
@@ -8,32 +8,4 @@ targetType "library"
 sourcePaths "src/"
 importPaths "src/"
 targetPath "bin/"
-
-subPackage {
-    name "betterc"
-    targetType "library"
-    sourcePaths "src/"
-    importPaths "src/"
-    targetPath "bin/"
-    dflags "-betterC"
-}
-
-subPackage {
-    name "test_nogc"
-    targetType "executable"
-    sourcePaths "test/nogc/"
-    importPaths "test/nogc/"
-    targetPath "bin/"
-    dependency "clib" version="*"
-}
-
-subPackage {
-    name "test_betterc"
-    targetType "executable"
-    sourcePaths "test/betterc/"
-    importPaths "test/betterc/"
-    targetPath "bin/"
-    dependency "clib:betterc" version="*"
-    dflags "-betterC"
-}
 

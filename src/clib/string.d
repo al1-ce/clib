@@ -1,10 +1,13 @@
+// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /++
-betterC compatible string.
+noGC compatible string.
 Technically it is simply an alias to vector!char
 because vector!char already includes everything
 that cstring needs (using static if)
 +/
-module clib.cstring;
+module clib.string;
 
 import clib.vector;
 
