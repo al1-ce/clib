@@ -55,7 +55,7 @@ This library includes all (almost?) "aliases" to `core.stdc.*` modules in respec
 
 # Custom modules
 - [x] format (exists in C++20 specs, but my version currently is for emulating c's format function)
-- [ ] conv (just your normal type conversion)
+- [ ] conv (just your normal type conversion, right now contains only c++ "casts")
 
 ## On classes
 D's keyword `new` can't be used with noGC and to "fix" that there's two functions: `_new` and `_free` in `clib.memory` which can be used to create classes with noGC.
@@ -84,7 +84,7 @@ class DClass {}
 class DChild: DClass{}
 DChild dprt;
 if (typeid(dprt) != typeid(DClass)) printf("Not same\n");
-if (typeid(DClass).isBaseOf(typeid(DChild))) printf("Is child\n");
+if (typeid(DClass).is_base_of(typeid(DChild))) printf("Is child\n");
 
 // Clib way:
 
@@ -100,36 +100,46 @@ class CChild: CClass{
 
 CChild cprt;
 if (_typeid(cprt) != _typeid!CClass) printf("Not same\n");
-if (_typeid!CClass().isBaseOf(cprt)) printf("Is child\n");
+if (_typeid!CClass().is_base_of(cprt)) printf("Is child\n");
 ```
 
 `clib.typeinfo.reinterpret_cast` can be used to work around [known bug](https://issues.dlang.org/show_bug.cgi?id=21690).
 ```d
-import core.stdc.stdio;
-import clib.typecast;
+import clib.stdio;
+import clib.typeinfo;
 import clib.memory;
+import clib.conv;
 
 extern(C++) class ICpp: CppObject {
-    void baseFunc() @nogc nothrow { printf("ICpp func\n"); }
+    void base_func() @nogc nothrow { printf("ICpp func\n"); }
 }
 
 extern(C++) class CppClass: ICpp {
     mixin RTTI!ICpp;
-    override void baseFunc() @nogc nothrow { printf("CppClass func\n"); }
+    override void base_func() @nogc nothrow { printf("CppClass func\n"); }
 }
 
 extern(C) int main() @nogc nothrow {
     CppClass c = _new!CppClass();
 
-    void testBaseFunc(ICpp base) {
-        base.baseFunc();
-        reinterpret_cast!ICpp(base).baseFunc(); // doesn't matter as it's already ICpp
+    void test_base_func(ICpp base) {
+        base.base_func();
+        reinterpret_cast!ICpp(base).base_func(); // doesn't matter as it's already ICpp
     }
 
-    testBaseFunc(c); // will case segfault!!!
-    testBaseFunc(reinterpret_cast!ICpp(c)); // must be a cast
-    reinterpret_cast!ICpp(c).testBaseFunc(); // or treat it as member
+    test_base_func(c); // will case segfault!!!
+    test_base_func(reinterpret_cast!ICpp(c)); // must be a cast
+    reinterpret_cast!ICpp(c).test_base_func(); // or treat it as member
 }
+```
+
+## Disable GC
+
+Before `main` function or entrance point put:
+
+```d
+import clib.memory: DISABLE_GC;
+mixin DISABLE_GC;
 ```
 
 ## Development

@@ -8,6 +8,10 @@ module clib.memory;
 
 import clib.stdlib: malloc, realloc, free;
 
+mixin template DISABLE_GC() {
+    extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
+}
+
 /++
 Used to allocate/deallocate memory for classes
 

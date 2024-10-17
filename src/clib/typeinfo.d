@@ -10,6 +10,7 @@ version(CLIB_USE_TYPEINFO):
 
 import clib.string: strcmp;
 import clib.traits;
+import clib.conv;
 
 import clib.memory;
 
@@ -64,11 +65,11 @@ struct type_info {
     /// Fully qualified type name
     const char* name = "\0".ptr;
     /// Is type a pointer
-    const bool isPointer = false;
+    const bool IS_POINTER = false;
     /// Is type a function
-    const bool isFunction = false;
-    private const char[] _strName;
-    private bool _isACppObject = false;
+    const bool is_function = false;
+    private const char[] _str_name;
+    private bool _is_a_cpp_object = false;
 
     /// Returns fully qualified type name
     const(char*) toString() const { return name; }
@@ -95,18 +96,18 @@ struct type_info {
     }
 
     /// Is T a child of type_info owner
-    bool isBaseOf(T)(T t) @nogc nothrow {
-        return isBaseOf!T;
+    bool is_base_of(T)(T t) @nogc nothrow {
+        return is_base_of!T;
     }
 
     /// Ditto
-    bool isBaseOf(T)() @nogc nothrow {
-        if (isPointer || isFunction) return false;
+    bool is_base_of(T)() @nogc nothrow {
+        if (IS_POINTER || is_function) return false;
         import clib.string: strlen, memcmp;
-        if (!isSubclassOfCppObject!T) return false;
-        if (_isACppObject) return true;
+        if (!IS_SUBCLASS_OF_CPP_OBJECT!T) return false;
+        if (_is_a_cpp_object) return true;
         char[200] s = ' ';
-        char[] t = cast(char[]) _strName;
+        char[] t = cast(char[]) _str_name;
 
         s[0..2] = cast(char[]) "__";
 
@@ -131,45 +132,45 @@ struct type_info {
 }
 
 /// Queries information about type
-type_info _typeid(T)(T t) @nogc nothrow if (isSuitableForTypeID!T) {
+type_info _typeid(T)(T t) @nogc nothrow if (IS_SUITABLE_FOR_TYPEID!T) {
     return _typeid!T();
 }
 
 /// Ditto
-type_info _typeid(T)() @nogc nothrow if (isSuitableForTypeID!T) {
+type_info _typeid(T)() @nogc nothrow if (IS_SUITABLE_FOR_TYPEID!T) {
     type_info t = {
-        cast(const(char*)) __traits(fullyQualifiedName, Unqual!T).ptr,
-        isPointer!T,
-        isFunctionPointer!T || isDelegate!T,
-        cast(const(char[])) __traits(fullyQualifiedName, Unqual!T),
+        cast(const(char*)) __traits(fullyQualifiedName, UNQUAL!T).ptr,
+        IS_POINTER!T,
+        IS_FUNCTION_POINTER!T || IS_DELEGATE!T,
+        cast(const(char[])) __traits(fullyQualifiedName, UNQUAL!T),
         is(T == CppObject)
     };
 
     return t;
 }
 
-private bool isSuitableForTypeID(T)() @nogc nothrow {
+private bool IS_SUITABLE_FOR_TYPEID(T)() @nogc nothrow {
     static if (is(T == interface)) return true;
-    const bool isPtr = isAnyPointerType!T;
+    const bool isPtr = IS_ANY_POINTER_TYPE!T;
     static if (!isPtr) {
-        return isSubclassOfCppObject!T;
+        return IS_SUBCLASS_OF_CPP_OBJECT!T;
     } else {
         return true;
     }
 }
 
-private bool isSubclassOfCppObject(T)() @nogc nothrow if (!isAnyPointerType!T) {
+private bool IS_SUBCLASS_OF_CPP_OBJECT(T)() @nogc nothrow if (!IS_ANY_POINTER_TYPE!T) {
     bool isCpp = __traits(getLinkage, T) == "C++";
     bool isObj = __traits(hasMember, T, "__clib_cpp_object_identifier");
     return isCpp && isObj;
 }
 
-private bool isAnyPointerType(T)() @nogc nothrow {
-    return isPointer!T || isFunctionPointer!T || isDelegate!T;
+private bool IS_ANY_POINTER_TYPE(T)() @nogc nothrow {
+    return IS_POINTER!T || IS_FUNCTION_POINTER!T || IS_DELEGATE!T;
 }
 
 /// Injects RunTime Type Information (allows type_info to see inheritance)
-mixin template RTTI(T) if ((isSubclassOfCppObject!T || is(T == interface)) && !is(T == CppObject)) {
+mixin template RTTI(T) if ((IS_SUBCLASS_OF_CPP_OBJECT!T || is(T == interface)) && !is(T == CppObject)) {
     mixin( __cpp_class_inheritance_generator!T() );
 }
 
@@ -192,41 +193,4 @@ char[200] __cpp_class_inheritance_generator(T)() {
     s[(7 + t.length)..(7 + t.length + 18)] = "_clib_parent (){}\0";
     return s;
 }
-
-// TODO: add separate cast versions for C++ linkage and D classes
-
-/// Interprets F as T (dangerous, use mainly as workaround to bug 21690)
-T reinterpret_cast(T, F)(F t) @nogc nothrow {
-    return ( cast(T) cast(void*) t );
-}
-
-/// Downcasts F to T (CAN RETURN NULL IF UNABLE TO DOWNCAST)
-T dynamic_cast(T, F)(F t) @nogc nothrow if (isClass!T && isClass!F) {
-    if (_typeid!(F)().isBaseOf!(T)()) {
-        return ( cast(T) cast(void*) t );
-    } else {
-        return null;
-    }
-}
-
-/// Downcasts F to T or converts scalar types (CAN RETURN NULL IF UNABLE TO DOWNCAST)
-T static_cast(T, F)(F t) @nogc nothrow
-if ((isClass!T && isClass!F) || (isScalar!T && isScalar!F)) {
-    if (isScalarType!T) {
-        return cast(T) t;
-    } else {
-        return dynamic_cast!(T, F)(t);
-    }
-}
-
-/// Performs basic type casting
-T const_cast(T, F)(F t) @nogc nothrow {
-    return cast(T) t;
-}
-
-private enum bool isScalar(T) = __traits(isScalar, T) && is(T : real);
-
-private enum bool isClass(T) =
-    (is(T == U*, U) && (is(T == class) || is(T == interface))) ||
-    (is(T == class) || is(T == interface));
 

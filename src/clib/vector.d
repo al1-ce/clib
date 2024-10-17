@@ -128,7 +128,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         // _size = other._size;
         // _capacity = other._capacity;
         // _refCounter[0] += 1;
-        assignCopy(other._data, other._size);
+        assign_copy(other._data, other._size);
     }
 
     ~this() @nogc nothrow {
@@ -146,7 +146,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns copy of this vector
     scope vector!(T, A) clone() @nogc nothrow {
         vector!(T, A) v;
-        v.assignCopy(_data, _size);
+        v.assign_copy(_data, _size);
         return v;
     }
 
@@ -294,7 +294,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     DO NOT USE ON STACK-ALLOCATED MEMORY (WILL SEGFAULT)!
     +/
-    void assignPointer( T* p_data, size_t p_size ) @nogc nothrow {
+    void assign_pointer( T* p_data, size_t p_size ) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (_capacity != 0 || _data !is null) _allocator.deallocate(_data);
         _size = p_size;
@@ -303,7 +303,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     }
 
     /// Copies data to vector and sets size and capacity to `p_size`
-    void assignCopy( T* p_data, size_t p_size ) @nogc nothrow {
+    void assign_copy( T* p_data, size_t p_size ) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         resize(p_size);
         _size = p_size;
@@ -318,16 +318,16 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         if (p_size <= _capacity) return true;
         if (_allocator is null) _allocator = _new!A();
 
-        void* newData;
+        void* new_data;
 
         if (_data is null) {
-            newData = _allocator.allocate(p_size * T.sizeof);
+            new_data = _allocator.allocate(p_size * T.sizeof);
         } else {
-            newData = _allocator.reallocate(_data, p_size * T.sizeof);
+            new_data = _allocator.reallocate(_data, p_size * T.sizeof);
         }
 
-        if (newData is null) return false;
-        _data = cast(T*) newData;
+        if (new_data is null) return false;
+        _data = cast(T*) new_data;
 
         _capacity = p_size;
 
@@ -338,16 +338,16 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns true on success
     bool resize(size_t p_size, const T p_val = T.init) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
-        void* newData;
+        void* new_data;
 
         if (_data is null) {
-            newData = _allocator.allocate(p_size * T.sizeof);
+            new_data = _allocator.allocate(p_size * T.sizeof);
         } else {
-            newData = _allocator.reallocate(_data, p_size * T.sizeof);
+            new_data = _allocator.reallocate(_data, p_size * T.sizeof);
         }
-        if (newData is null) return false;
+        if (new_data is null) return false;
 
-        _data = cast(T*) newData;
+        _data = cast(T*) new_data;
         _capacity = p_size;
 
         if (p_size > _size) {
@@ -374,7 +374,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     /// Pushes new element to beginning of vector.
     /// If `newSize + 1 > capacity` then it will `reserve(capacity * 2 + 2)`
-    void pushFront(T val) @nogc nothrow {
+    void push_front(T val) @nogc nothrow {
         if (_size >= _capacity) reserve((_capacity + 1) * 2);
         // for (size_t i = _size; i > 0; --i) _data[i] = _data[i - 1];
         memcpy(&_data[1], _data, _size * T.sizeof);
@@ -384,7 +384,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     /// Pushes new elements to beginning of vector.
     /// If `newSize > capacity` then it will `reserve(capacity * 2 + newSize + 2)`
-    void pushFront(T[] vals...) @nogc nothrow {
+    void push_front(T[] vals...) @nogc nothrow {
         if (_size + vals.length >= _capacity) reserve(_capacity * 2 + vals.length + 2);
         memcpy(&_data[vals.length], _data, _size * T.sizeof);
         memcpy(_data, vals.ptr, vals.length * T.sizeof);
@@ -432,11 +432,11 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         if (_allocator is null) _allocator = _new!A();
 
         if (_data !is null) {
-            void* newData;
-            newData = _allocator.reallocate(_data, _size * T.sizeof);
-            if (newData is null) return false;
+            void* new_data;
+            new_data = _allocator.reallocate(_data, _size * T.sizeof);
+            if (new_data is null) return false;
             import std.traits;
-            _data = cast(T*) newData;
+            _data = cast(T*) new_data;
             _capacity = _size;
         }
 
@@ -444,7 +444,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     }
 
     /// Returns first element or `T.init` if `size == 0` and removes it from vector
-    T popFront() @nogc nothrow {
+    T pop_front() @nogc nothrow {
         if (_size == 0) return T.init;
         T val = _data[0];
         erase(0);
@@ -485,15 +485,15 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Destroys vector data and sets size to 0
     void clear() @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
-        void* newData = _allocator.allocate(_capacity * T.sizeof);
-        if (newData is null) return;
+        void* new_data = _allocator.allocate(_capacity * T.sizeof);
+        if (new_data is null) return;
 
         if (_data !is null) {
-            freeData();
+            free_data();
             _allocator.deallocate(_data);
         }
 
-        _data = cast(T*) newData;
+        _data = cast(T*) new_data;
         _size = 0;
     }
 
@@ -501,7 +501,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     void free() @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (_data !is null) {
-            freeData();
+            free_data();
             _allocator.deallocate(_data);
         }
         if (_allocator !is null) _allocator._free();
@@ -510,7 +510,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         _capacity = 0;
     }
 
-    private void freeData() @nogc nothrow {
+    private void free_data() @nogc nothrow {
         if (_data !is null) {
             for (size_t i = 0; i < _size; ++i) destroy!false(_data[i]);
         }
@@ -586,7 +586,7 @@ unittest {
 unittest {
     int[4] data = [1, 2, 3, 4];
     vector!int k;
-    k.assignCopy(data.ptr, 4);
+    k.assign_copy(data.ptr, 4);
     assert(k[0..$] == [1, 2, 3, 4]);
     k.free();
 
@@ -595,7 +595,7 @@ unittest {
     int* d = cast(int*) malloc(4 * int.sizeof);
     memcpy(d, data.ptr, 4 * int.sizeof);
     vector!int v;
-    v.assignPointer(d, 4);
+    v.assign_pointer(d, 4);
     assert(v[0..$] == [1, 2, 3, 4]);
     v.free();
 }
@@ -620,9 +620,9 @@ unittest {
     assert(v.back == 3);
     v.push(4, 5);
     assert(v.array == [1, 2, 3, 4, 5]);
-    v.pushFront(0);
+    v.push_front(0);
     assert(v.array == [0, 1, 2, 3, 4, 5]);
-    v.pushFront(-2, -1);
+    v.push_front(-2, -1);
     assert(v.array == [-2, -1, 0, 1, 2, 3, 4, 5]);
 }
 
@@ -657,10 +657,10 @@ unittest {
 unittest {
     vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
     v.pop();
-    v.popFront();
+    v.pop_front();
     assert(v.array == [1, 2, 3, 4, 5]);
     v.clear();
-    assert(v.popFront() == int.init);
+    assert(v.pop_front() == int.init);
     assert(v.pop() == int.init);
     assert(v.size == 0);
 }

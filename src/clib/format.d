@@ -26,7 +26,7 @@ scope cstring format(A...)(const(char)[] fmt, A args) @nogc nothrow {
     char* buffer = cast(char*) malloc(len);
     snprintf(buffer, len, fmt.ptr, args);
     cstring str;
-    str.assignPointer(buffer, len);
+    str.assign_pointer(buffer, len);
     return str;
 }
 

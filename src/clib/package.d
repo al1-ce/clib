@@ -30,6 +30,7 @@ public import
     clib.assert_,
     clib.complex,
     clib.ctype,
+    clib.conv,
     clib.errno,
     clib.exception,
     clib.fenv,
