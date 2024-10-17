@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 noGC compatible string.
@@ -8,6 +8,8 @@ because vector!char already includes everything
 that cstring needs (using static if)
 +/
 module clib.string;
+
+public import core.stdc.string;
 
 import clib.vector;
 

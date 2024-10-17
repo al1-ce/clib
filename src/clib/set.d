@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 noGC compatible associative container that contains a sorted set of unique objects
 +/
 module clib.set;
 
-import core.stdc.string: memcmp;
+import clib.string: memcmp;
 
 import clib.memory;
 import clib.typeinfo;
@@ -19,7 +19,7 @@ Default sorting algorithm is bubble sort.
 
 Prefer inserting values by bulk because it sorts after each `insert` call.
 ++/
-struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
+struct set(T, alias COMPARE = sort_function, A: IAllocator!T = allocator!T) {
     private T* _data = null;
     private A _allocator = null;
 
@@ -96,13 +96,13 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
     /// Inserts values into set if `!has(val)`
     void insert(T[] vals...) @nogc nothrow {
         for (size_t i = 0; i < vals.length; ++i) {
-            if (!has(vals[i])) insertOne(vals[i]);
+            if (!has(vals[i])) insert_one(vals[i]);
         }
         sort();
     }
 
     /// Ditto
-    private void insertOne(T val) @nogc nothrow {
+    private void insert_one(T val) @nogc nothrow {
         if (_size >= _capacity) reserve(_capacity * 2 + 2);
         _data[_size] = val;
         ++_size;
@@ -124,7 +124,7 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
         for (size_t i = 0; i <  _size - 1; ++i) {
             swapped = false;
             for (size_t j = 0; j < _size - i - 1; ++j) {
-                if (Compare(_data[j], _data[j + 1])) {
+                if (COMPARE(_data[j], _data[j + 1])) {
                     T temp = _data[j];
                     _data[j] = data[j + 1];
                     _data[j + 1] = temp;
@@ -182,7 +182,7 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
         if (newData is null) return;
 
         if (_data !is null) {
-            freeData();
+            free_data();
             _allocator.deallocate(_data);
         }
 
@@ -192,7 +192,7 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
 
     void free() @nogc nothrow {
         if (_data !is null) {
-            freeData();
+            free_data();
             _allocator.deallocate(_data);
         }
         if (_allocator !is null) _allocator._free();
@@ -201,16 +201,16 @@ struct set(T, alias Compare = sortFunction, A: IAllocator!T = allocator!T) {
         _capacity = 0;
     }
 
-    private void freeData() @nogc nothrow {
+    private void free_data() @nogc nothrow {
         if (_data !is null) {
             for (size_t i = 0; i < _size; ++i) destroy!false(_data[i]);
         }
     }
 }
 
-private bool sortFunction(T)(T a, T b) @nogc nothrow {
+private bool sort_function(T)(T a, T b) @nogc nothrow {
     static if (is(T == char*)) {
-        import core.stdc.string: strcmp;
+        import clib.string: strcmp;
         return strcmp(a, b) > 0;
     } else {
         return a > b;
@@ -276,7 +276,7 @@ unittest {
         cast(char*)"dcba".ptr,
         cast(char*)"remove".ptr
     ];
-    import core.stdc.string: strcmp;
+    import clib.string: strcmp;
     assert(strcmp(s[0], cast(char*) "abcd".ptr) == 0);
     assert(strcmp(s[1], cast(char*) "add".ptr) == 0);
 }

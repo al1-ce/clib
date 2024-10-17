@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 NoGC math
@@ -10,4 +10,5 @@ module clib.math;
 
 // TODO: implement
 
+public import core.stdc.math;
 public import clib.math.traits;

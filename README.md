@@ -11,10 +11,13 @@ And why it's called clib? Because it's a better**CLib**rary. But, despite the na
 ## Most of clib's C++ STL features are PRE C++11
 I consider those features to be most essential. C++11 features will probably come after base features. Same for later C++ versions.
 
+## C STL
+This library includes all (almost?) "aliases" to `core.stdc.*` modules in respective `clib.*` modules, some of which contain their own code (i.e `clib.string`).
+
 ## C++ STL implementation list
 - [ ] algorithm
 - [ ] complex
-- [-] exception (partially implemented, but more as release-compatible asserts)
+- [x] exception (partially implemented, but more as release-compatible asserts)
 - [ ] fstream
 - [ ] functional
 - [ ] iomanip
@@ -25,7 +28,7 @@ I consider those features to be most essential. C++11 features will probably com
 - [ ] iterator
 - [ ] limits
 - [ ] locale
-- [-] memory (partially implemented, has Mallocator, `_new` and `_free`)
+- [x] memory (partially implemented, has Mallocator, `_new` and `_free`)
 - [ ] numeric
 - [ ] ostream
 - [ ] sstream
@@ -40,19 +43,19 @@ I consider those features to be most essential. C++11 features will probably com
 - [x] optional
 
 ## C++ containers implementation
-- [-] deque (do not plan to implement it, not sure how to be completely honest, PR's are welcome though)
+- [x] deque (do not plan to implement it, not sure how to be completely honest, PR's are welcome though)
 - [ ] list
 - [ ] map
 - [x] queue
 - [x] set
 - [x] stack
 - [x] string (technically is an alias to `vector!char` with static if shenanigans. WIP)
-- [-] valarray (same as deque)
+- [x] valarray (same as deque)
 - [x] vector
 
 # Custom modules
-- [-] format (exists in C++20 specs, but my version currently is for emulating c's format function)
-- [-] conv (just your normal type conversion)
+- [x] format (exists in C++20 specs, but my version currently is for emulating c's format function)
+- [ ] conv (just your normal type conversion)
 
 ## On classes
 D's keyword `new` can't be used with noGC and to "fix" that there's two functions: `_new` and `_free` in `clib.memory` which can be used to create classes with noGC.

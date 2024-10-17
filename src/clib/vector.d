@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 noGC compatible dynamic size container.
@@ -8,8 +8,8 @@ Most of functionality is taken directly from cpp's std::vector with minor change
 +/
 module clib.vector;
 
-// import core.stdc.stdlib: free, malloc, calloc, realloc;
-import core.stdc.string: memcpy, memcmp, strcpy, strcmp;
+// import clib.stdlib: free, malloc, calloc, realloc;
+import clib.string: memcpy, memcmp, strcpy, strcmp;
 
 import clib.memory;
 import clib.iterator;
@@ -118,7 +118,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         // // Make type be passed by reference
         // // Fun stuff, but probably no
         // if (other._refCounter is null) {
-        //     import core.stdc.stdlib;
+        //     import clib.stdlib;
         //     other._refCounter = cast(size_t*) malloc(size_t.sizeof);
         //     if (other_refCounter is null) {} // handle fail
         //     other._refCounter[0] = 1;
@@ -136,7 +136,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         // if (_refCounter is null) return;
         // _refCounter[0] -= 1;
         // if (_refCounter[0] == 0) {
-        //     import core.stdc.stdlib: cfree = free;
+        //     import clib.stdlib: cfree = free;
         //     cfree(_refCounter);
         //     free();
         // }
@@ -590,8 +590,8 @@ unittest {
     assert(k[0..$] == [1, 2, 3, 4]);
     k.free();
 
-    import core.stdc.string;
-    import core.stdc.stdlib;
+    import clib.string;
+    import clib.stdlib;
     int* d = cast(int*) malloc(4 * int.sizeof);
     memcpy(d, data.ptr, 4 * int.sizeof);
     vector!int v;
@@ -716,11 +716,11 @@ unittest {
 unittest {
     vector!char v = "test";
     char[5] a = ['t', 'e', 's', 't', '\0'];
-    import core.stdc.string: strcmp;
+    import clib.string: strcmp;
     assert(strcmp(v.stringz.data, a.ptr) == 0);
     char* sz = v.stringz.release();
     assert(strcmp(sz, a.ptr) == 0);
-    import core.stdc.stdlib;
+    import clib.stdlib;
     free(sz);
 }
 

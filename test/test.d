@@ -9,7 +9,7 @@ dependency "clib" path="../"
 import clib;
 // import clib.memory;
 
-import core.stdc.stdio;
+// import core.stdc.stdio;
 
 extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
 void main(string[] args)

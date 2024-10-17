@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 Utilities for memory management
 +/
 module clib.memory;
 
-import core.stdc.stdlib: malloc, realloc, free;
+import clib.stdlib: malloc, realloc, free;
 
 /++
 Used to allocate/deallocate memory for classes
@@ -32,7 +32,7 @@ T _new(T, Args...)(auto ref Args args) @nogc nothrow {
         import core.memory : pureMalloc;
         auto _t = cast(T) pureMalloc(tsize);
         if (_t is null) return null;
-        import core.stdc.string : memcpy;
+        import clib.string : memcpy;
         // Copies initial state of T (initSymbol -> const(void)[]) into _t
         memcpy(cast(void*) _t, __traits(initSymbol, T).ptr, tsize);
         return _t;
@@ -59,7 +59,7 @@ void _free(T)(ref T t) @nogc nothrow {
 alias allocator = Mallocator;
 
 /// Unmanaged allocator (a wrapper over malloc)
-class Mallocator(T): IAllocator!T if (isValidAlloccatorType!T()) {
+class Mallocator(T): IAllocator!T if (IS_VALID_ALLOCATOR_TYPE!T()) {
 
     /// Allocator has no state
     this() @nogc nothrow {}
@@ -112,7 +112,7 @@ interface IAllocator(T) {
     void deallocate_vptr(void* ptr) @nogc nothrow;
 }
 
-private bool isValidAlloccatorType(T)() @nogc nothrow {
+private bool IS_VALID_ALLOCATOR_TYPE(T)() @nogc nothrow {
     return !is(T == const) && !is(T == immutable);
 }
 

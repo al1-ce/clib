@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /// NoGC compatible FCFS container
 module clib.queue;
@@ -18,7 +18,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
     private Node* _root = null;
     private Node* _end = null;
     private size_t _size = 0;
-    private size_t _sizeLimit = -1;
+    private size_t _size_limit = -1;
     private A _allocator = null;
 
     /// Length of queue
@@ -46,7 +46,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
             n = n.next;
         }
         _size = other._size;
-        _sizeLimit = other._sizeLimit;
+        _size_limit = other._size_limit;
     }
 
     ~this() @nogc nothrow {
@@ -62,7 +62,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
             n = n.next;
         }
         q._size = _size;
-        q._sizeLimit = _sizeLimit;
+        q._size_limit = _size_limit;
         return q;
     }
 
@@ -75,10 +75,10 @@ struct queue(T, A: IAllocator!T = allocator!T) {
     void push(T[] vals...) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (vals.length == 0) return;
-        if (_size >= _sizeLimit) return;
+        if (_size >= _size_limit) return;
 
         int i = 0;
-        if (_root == null && _size < _sizeLimit) {
+        if (_root == null && _size < _size_limit) {
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = null;
@@ -89,7 +89,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
         }
 
         for (;i < vals.length; ++i) {
-            if (_size >= _sizeLimit) break;
+            if (_size >= _size_limit) break;
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = null;
@@ -121,7 +121,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
     If length is limited and new element is attempted to be
     pushed when Queue is overfilled nothing will happen.
     +/
-    void limitLength(size_t len) @nogc nothrow {
+    void limit_length(size_t len) @nogc nothrow {
         if (_root == null) return;
         if (len == 0) {
             while (_size > 0) pop();
@@ -145,7 +145,7 @@ struct queue(T, A: IAllocator!T = allocator!T) {
             }
         }
         _size = len;
-        _sizeLimit = len;
+        _size_limit = len;
     }
 
     /// Removes all elements from queue
@@ -210,7 +210,7 @@ unittest {
 unittest {
     queue!int q = queue!int(1, 2, 3, 4);
     q.push(5, 6, 7, 8, 9, 10);
-    q.limitLength(7);
+    q.limit_length(7);
     assert(q.size == 7);
     assert(q.array == [1, 2, 3, 4, 5, 6, 7]);
 }

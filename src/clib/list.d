@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /// NoGC compatible double ended container
 module clib.list;
@@ -20,7 +20,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
     private Node* _root = null;
     private Node* _end = null;
     private size_t _size = 0;
-    private size_t _sizeLimit = -1;
+    private size_t _size_limit = -1;
     private A _allocator = null;
 
     /// Length of list
@@ -53,20 +53,20 @@ struct list(T, A: IAllocator!T = allocator!T) {
     /// Creates list filled with vals
     this(T[] vals...) @nogc nothrow {
         _allocator = _new!A();
-        pushBack(vals);
+        push_back(vals);
     }
 
     // Copy ctor (slow)
     this(ref scope list!(T, A) other) @nogc nothrow {
         for (int i = 0; i < other.size; ++i) {
-            pushBack(other[i]);
+            push_back(other[i]);
         }
-        _sizeLimit = other._sizeLimit;
+        _size_limit = other._size_limit;
         _size = other._size;
     }
 
     ~this() @nogc nothrow {
-        while (_size > 0) popFront();
+        while (_size > 0) pop_front();
         _free(_allocator);
     }
 
@@ -74,22 +74,22 @@ struct list(T, A: IAllocator!T = allocator!T) {
     scope list!(T, A) clone() @nogc nothrow {
         list!(T, A) l;
         for (int i = 0; i < _size; ++i) {
-            l.pushBack(getNodeAt(i).value);
+            l.push_back(get_node_at(i).value);
         }
-        l._sizeLimit = _sizeLimit;
+        l._size_limit = _size_limit;
         l._size = _size;
         return l;
     }
 
     /// Returns true if has element (slow)
     bool has(T val) @nogc nothrow {
-        for (int i = 0; i < _size; ++i) if (val == getNodeAt(i).value) return true;
+        for (int i = 0; i < _size; ++i) if (val == get_node_at(i).value) return true;
         return false;
     }
 
     /// Returns index of value or -1 (size_t.max == -1) (slow)
     size_t find(T val) @nogc nothrow {
-        for (int i = 0; i < _size; ++i) if (val == getNodeAt(i).value) return i;
+        for (int i = 0; i < _size; ++i) if (val == get_node_at(i).value) return i;
         return -1;
     }
 
@@ -97,17 +97,17 @@ struct list(T, A: IAllocator!T = allocator!T) {
     size_t opDollar() @nogc nothrow const { return _size; }
 
     void opOpAssign(string op: "~")( in T b ) @nogc nothrow {
-        pushBack(b);
+        push_back(b);
     }
 
     void opOpAssign(string op: "~")( in T[] b ) @nogc nothrow {
-        pushBack(b);
+        push_back(b);
     }
 
     /// Ditto
     void opIndexAssign(T val, size_t index) @nogc nothrow {
         if (index >= _size || _size == 0) return;
-        Node* n = getNodeAt(index);
+        Node* n = get_node_at(index);
         import std.format: format;
         if (n != null) (*n).value = val;
     }
@@ -115,7 +115,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
     /// Returns element of vector or T.init
     T opIndex(size_t index) @nogc nothrow {
         if (index >= _size || _size == 0) return T.init;
-        Node* n = getNodeAt(index);
+        Node* n = get_node_at(index);
         if (n == null) return T.init;
         return (*n).value;
     }
@@ -124,9 +124,9 @@ struct list(T, A: IAllocator!T = allocator!T) {
     /// If `pos >= size` then it will do nothing
     void erase(size_t index) @nogc nothrow {
         if (index >= _size || _size == 0) return;
-        if (index == 0) { popFront(); return; }
-        if (index == _size - 1) { popBack(); return; }
-        Node* n = getNodeAt(index);
+        if (index == 0) { pop_front(); return; }
+        if (index == _size - 1) { pop_back(); return; }
+        Node* n = get_node_at(index);
         if (n == null) return;
         Node* p = (*n).prev;
         Node* x = (*n).next;
@@ -144,12 +144,12 @@ struct list(T, A: IAllocator!T = allocator!T) {
         if (p_end == p_start) { erase(p_start); return; }
         if (p_end >= _size - 1) p_end = _size - 1;
         if (p_start == 0 && p_end == _size - 1) {
-            while (_size > 0) popFront();
+            while (_size > 0) pop_front();
             return;
         }
         size_t diff = p_end - p_start + 1;
 
-        Node* n = getNodeAt(p_start);
+        Node* n = get_node_at(p_start);
         if (n == null) return;
         Node* ns = (*n).prev;
         for (size_t i = 0; i < diff; ++i) {
@@ -184,10 +184,10 @@ struct list(T, A: IAllocator!T = allocator!T) {
 
     /// Inserts value into vector at `p_pos`
     void insert(size_t pos, T val) @nogc nothrow {
-        if (_size == 0) pushBack(val);
-        if (pos == 0) { pushFront(val); return; }
-        if (pos >= _size) { pushBack(val); return; }
-        Node* n = getNodeAt(pos - 1);
+        if (_size == 0) push_back(val);
+        if (pos == 0) { push_front(val); return; }
+        if (pos >= _size) { push_back(val); return; }
+        Node* n = get_node_at(pos - 1);
         if (n == null) return;
         Node* x = (*n).next;
         Node* v = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
@@ -199,13 +199,13 @@ struct list(T, A: IAllocator!T = allocator!T) {
     }
 
     /// Adds vals at end of list (last val becomes back)
-    void pushBack(T[] vals...) @nogc nothrow {
+    void push_back(T[] vals...) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (vals.length == 0) return;
-        if (_size >= _sizeLimit) return;
+        if (_size >= _size_limit) return;
 
         int i = 0;
-        if (_root == null && _size < _sizeLimit) {
+        if (_root == null && _size < _size_limit) {
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = null;
@@ -217,7 +217,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
         }
 
         for (;i < vals.length; ++i) {
-            if (_size >= _sizeLimit) break;
+            if (_size >= _size_limit) break;
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = null;
@@ -229,13 +229,13 @@ struct list(T, A: IAllocator!T = allocator!T) {
     }
 
     /// Adds vals at start of list (last val becomes front)
-    void pushFront(T[] vals...) @nogc nothrow {
+    void push_front(T[] vals...) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         if (vals.length == 0) return;
-        if (_size >= _sizeLimit) return;
+        if (_size >= _size_limit) return;
 
         int i = 0;
-        if (_root == null && _size < _sizeLimit) {
+        if (_root == null && _size < _size_limit) {
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = null;
@@ -247,7 +247,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
         }
 
         for (;i < vals.length; ++i) {
-            if (_size >= _sizeLimit) break;
+            if (_size >= _size_limit) break;
             Node* ptr = cast(Node*) _allocator.allocate_vptr(Node.sizeof);
             (*ptr).value = vals[i];
             (*ptr).next = _root;
@@ -259,7 +259,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
     }
 
     /// Returns first value and removes it from list or returns T.init if empty
-    T popFront() @nogc nothrow {
+    T pop_front() @nogc nothrow {
         if (_root == null) { return T.init; }
         T val = (*_root).value;
         --_size;
@@ -277,7 +277,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
     }
 
     /// Returns first value and removes it from list or returns T.init if empty
-    T popBack() @nogc nothrow {
+    T pop_back() @nogc nothrow {
         if (_end == null) { return T.init; }
         T val = (*_end).value;
         --_size;
@@ -299,10 +299,10 @@ struct list(T, A: IAllocator!T = allocator!T) {
     If length is limited and new element is attempted to be
     pushed when list is overfilled nothing will happen.
     +/
-    void limitLength(size_t len) @nogc nothrow {
+    void limit_length(size_t len) @nogc nothrow {
         if (_root == null) return;
         if (len == 0) {
-            while (_size > 0) popFront();
+            while (_size > 0) pop_front();
             return;
         }
         if (len >= _size) return;
@@ -323,12 +323,12 @@ struct list(T, A: IAllocator!T = allocator!T) {
             }
         }
         _size = len;
-        _sizeLimit = len;
+        _size_limit = len;
     }
 
     /// Removes all elements from list
     void clear() @nogc nothrow {
-        while (_size > 0) popFront();
+        while (_size > 0) pop_front();
         _root = null;
         _end = null;
         _size = 0;
@@ -349,7 +349,7 @@ struct list(T, A: IAllocator!T = allocator!T) {
         return arr;
     }
 
-    private Node* getNodeAt(size_t pos) @nogc nothrow {
+    private Node* get_node_at(size_t pos) @nogc nothrow {
         if (_size == 0 || _root == null) return null;
         if (pos >= _size - 1) return _end;
         if (pos == 0) return _root;
@@ -385,8 +385,8 @@ unittest {
     assert(q.size == 4);
     assert(q.front == 1);
     assert(q.back == 4);
-    assert(q.popFront() == 1);
-    assert(q.popBack() == 4);
+    assert(q.pop_front() == 1);
+    assert(q.pop_back() == 4);
     assert(q.front == 2);
     assert(q.back == 3);
     assert(q.size == 2);
@@ -398,11 +398,11 @@ unittest {
     assert(q.empty);
     assert(q.front == int.init);
     assert(q.back == int.init);
-    q.pushFront(3, 2, 1);
+    q.push_front(3, 2, 1);
     assert(q.front == 1);
     assert(q.back == 3);
     q ~= 3;
-    q.pushBack(2);
+    q.push_back(2);
     assert(q.front == 1);
     assert(q.array == [1, 2, 3, 3, 2]);
 }
@@ -411,14 +411,14 @@ unittest {
     list!int q = list!int(1, 2, 3, 4);
     q.clear();
     assert(q.size == 0);
-    assert(q.popFront() == int.init);
-    assert(q.popBack() == int.init);
+    assert(q.pop_front() == int.init);
+    assert(q.pop_back() == int.init);
 }
 
 unittest {
     list!int q = list!int(1, 2, 3, 4);
-    q.pushBack(5, 6, 7, 8, 9, 10);
-    q.limitLength(7);
+    q.push_back(5, 6, 7, 8, 9, 10);
+    q.limit_length(7);
     assert(q.size == 7);
     assert(q.array == [1, 2, 3, 4, 5, 6, 7]);
 }

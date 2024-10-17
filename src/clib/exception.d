@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 Exceptions and exception accessories (not really)
@@ -12,8 +12,8 @@ without knowing where they coming from
 +/
 module clib.exception;
 
-import core.stdc.stdlib: exit, EXIT_FAILURE;
-import core.stdc.stdio: stderr, fprintf;
+import clib.stdlib: exit, EXIT_FAILURE;
+import clib.stdio: stderr, fprintf;
 
 import clib.memory;
 import clib.format;
@@ -70,10 +70,10 @@ Params:
     release = Should free message? (to shush valgrind)
 +/
 void _throw(E: exception)(E e) @nogc nothrow {
-    if (__isCatchingException) {
-        if (__caughtException is null) {
-            __caughtException = cast(exception) cast(void*) e;
-            __caughtException.type = e.what;
+    if (__is_catching_exception) {
+        if (__caught_exception is null) {
+            __caught_exception = cast(exception) cast(void*) e;
+            __caught_exception.type = e.what;
         }
         return;
     }
@@ -122,38 +122,38 @@ _try(() {
 })._finally();
 ---
 +/
-TryCatchBlock _try(void delegate() @nogc nothrow tryBlock) @nogc nothrow {
-    if (tryBlock is null) return TryCatchBlock();
-    __isCatchingException = true;
-    tryBlock();
-    __isCatchingException = false;
-    TryCatchBlock b = { __caughtException };
-    __caughtException = null;
+TryCatchBlock _try(void delegate() @nogc nothrow try_block) @nogc nothrow {
+    if (try_block is null) return TryCatchBlock();
+    __is_catching_exception = true;
+    try_block();
+    __is_catching_exception = false;
+    TryCatchBlock b = { __caught_exception };
+    __caught_exception = null;
     return b;
 }
 
 /// Ditto
-TryCatchBlock _catch(E: exception)(TryCatchBlock b, void delegate(E) @nogc nothrow catchBlock) @nogc nothrow {
-    if (b.e is null || b.handled == true || catchBlock is null) return b;
-    import core.stdc.stdio;
+TryCatchBlock _catch(E: exception)(TryCatchBlock b, void delegate(E) @nogc nothrow catch_block) @nogc nothrow {
+    if (b.e is null || b.handled == true || catch_block is null) return b;
+    import clib.stdio;
     if (E.what == "Exception" || E.what == b.e.type) {
-        catchBlock(cast(E) cast(void*) b.e);
+        catch_block(cast(E) cast(void*) b.e);
         b.handled = true;
     }
     return b;
 }
 
 /// Ditto
-void _finally()(TryCatchBlock b, void delegate() @nogc nothrow finallyBlock = null) @nogc nothrow {
+void _finally()(TryCatchBlock b, void delegate() @nogc nothrow finally_block = null) @nogc nothrow {
     if (b.e !is null) {
         if (b.handled == false) _throw!(exception)(b.e);
-        if (finallyBlock !is null) finallyBlock();
+        if (finally_block !is null) finally_block();
         _free(b.e);
     }
 }
 
-private __gshared bool __isCatchingException = false;
-private __gshared exception __caughtException = null;
+private __gshared bool __is_catching_exception = false;
+private __gshared exception __caught_exception = null;
 
 private struct TryCatchBlock {
     private exception e = null;
@@ -168,24 +168,24 @@ private struct TryCatchBlock {
         private int line;
         private bool lfset = false;
         this(char* p_msg = null) @nogc nothrow { msg = p_msg; }
-        ~this() @nogc nothrow { import core.stdc.stdlib; free(msg); }
+        ~this() @nogc nothrow { import clib.stdlib; free(msg); }
     }
 
-class logic_error: exception { mixin exctor!("Logic Error"); }
-class invalid_argument: logic_error { mixin exctor!("Invalid Argument"); }
-class out_of_bounds: logic_error { mixin exctor!("Out of Bounds"); }
+class logic_error: exception { mixin EXCTOR!("Logic Error"); }
+class invalid_argument: logic_error { mixin EXCTOR!("Invalid Argument"); }
+class out_of_bounds: logic_error { mixin EXCTOR!("Out of Bounds"); }
 
-class runtime_error: exception { mixin exctor!("Runtime Error"); }
-class overflow_error: runtime_error { mixin exctor!("Overflow Error"); }
-class underflow_error: runtime_error { mixin exctor!("Underflow Error"); }
+class runtime_error: exception { mixin EXCTOR!("Runtime Error"); }
+class overflow_error: runtime_error { mixin EXCTOR!("Overflow Error"); }
+class underflow_error: runtime_error { mixin EXCTOR!("Underflow Error"); }
 
-class bad_alloc: exception { mixin exctor!("Bad Memory Allocation"); }
+class bad_alloc: exception { mixin EXCTOR!("Bad Memory Allocation"); }
 
-class bad_cast: exception { mixin exctor!("Bad Cast"); }
+class bad_cast: exception { mixin EXCTOR!("Bad Cast"); }
 
-class bad_typeid: exception { mixin exctor!("Bad TypeID"); }
+class bad_typeid: exception { mixin EXCTOR!("Bad TypeID"); }
 
-private mixin template exctor(string p_what) {
+private mixin template EXCTOR(string p_what) {
     this(char* p_msg = null) @nogc nothrow { super(p_msg); }
     static const string what = p_what;
 }

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /// extern(C++) TypeInfo alternative
 module clib.typeinfo;
@@ -8,7 +8,7 @@ module clib.typeinfo;
 version(D_BetterC) { version = CLIB_USE_TYPEINFO; }
 version(CLIB_USE_TYPEINFO):
 
-import core.stdc.string: strcmp;
+import clib.string: strcmp;
 import clib.traits;
 
 import clib.memory;
@@ -102,7 +102,7 @@ struct type_info {
     /// Ditto
     bool isBaseOf(T)() @nogc nothrow {
         if (isPointer || isFunction) return false;
-        import core.stdc.string: strlen, memcmp;
+        import clib.string: strlen, memcmp;
         if (!isSubclassOfCppObject!T) return false;
         if (_isACppObject) return true;
         char[200] s = ' ';
@@ -174,7 +174,7 @@ mixin template RTTI(T) if ((isSubclassOfCppObject!T || is(T == interface)) && !i
 }
 
 char[200] __cpp_class_inheritance_generator(T)() {
-    import core.stdc.string: strlen;
+    import clib.string: strlen;
     char[200] s = ' ';
     char[] t = cast(char[]) __traits(fullyQualifiedName, T);
 

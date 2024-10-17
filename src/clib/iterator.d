@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /// Iterator/Range for internal use
 module clib.iterator;
 
 import clib.traits;
 
-struct forward_iterator(I, T) if (isValidIterable!I) {
+struct forward_iterator(I, T) if (IS_VALID_ITERABLE!I) {
     private I iterable;
     private size_t size = 0;
     private size_t index = 0;
@@ -22,7 +22,7 @@ struct forward_iterator(I, T) if (isValidIterable!I) {
     void popFront() @nogc nothrow { ++index; }
 }
 
-struct backward_iterator(I, T) if (isValidIterable!I) {
+struct backward_iterator(I, T) if (IS_VALID_ITERABLE!I) {
     private I iterable;
     private size_t size = 0;
     private size_t index = 0;
@@ -38,8 +38,8 @@ struct backward_iterator(I, T) if (isValidIterable!I) {
     void popBack() @nogc nothrow { ++index; }
 }
 
-private bool isValidIterable(T)() @nogc nothrow {
-    static if (isArray!T) {
+private bool IS_VALID_ITERABLE(T)() @nogc nothrow {
+    static if (IS_ARRAY!T) {
         return true;
     } else {
         return __traits(hasMember, T, "opIndex");

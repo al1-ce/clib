@@ -28,8 +28,9 @@ clib mostly follows [D style](https://dlang.org/dstyle.html). Essential rules ar
 * Use spaces instead of tabs. Each indentation level is 4 spaces
 * There's always a space after control statements (`if`, `while`, `for`, etc...)
 * Opening curly bracket should be on a **same** line
-* Functions and variables should be in `camelCase`
+* Functions and variables should be in `snake_case`
 * Classes, structs and enums should be in `PascalCase`
+* Enum members, consts and macro-like templates and functions can be in `SCREAMING_SNAKE_CASE`
 * Module names should be in lowercase
 * `if () else if ()` can be split as `if () else\n if ()`
 * If method or function is used as property parenthesis can be dropped
@@ -46,11 +47,11 @@ clib mostly follows [D style](https://dlang.org/dstyle.html). Essential rules ar
     3. Constructors
     4. Public methods
     5. Private methods
-* Name prefixes are:
-    - ` ` - none for any kind of properties except ones below (`public static const int normalProperty`)
-    - `_` - for private/protected properties (`private int _privateProperty`)
-    - `s_` - for private/protected static properties (`private static int s_staticInt`)
-    - `t_` - for private/protected thread static properties (`private shared int t_staticInt`)
+* Property name prefixes are (does not apply to methods):
+    - ` ` - none for any kind of properties except ones below (`public static const int normal_property`)
+    - `_` - for private/protected properties (`private int _private_property`)
+    - `s_` - for private/protected static properties (`private static int s_static_int`)
+    - `t_` - for private/protected thread static properties (`private shared int t_static_int`)
     - `_` - as postfix when name is a keyword (`bool bool_`)
 * Function signature preferred to be in order:
     1. attributes (@property)
@@ -61,33 +62,33 @@ clib mostly follows [D style](https://dlang.org/dstyle.html). Essential rules ar
     6. type qualifiers and type (int, bool...)
     7. name and params
     8. attributes (const, nothrow, pure, @nogc, @safe)
-    9. i.e `@property private static override int myMethod(int* ptr) @safe @nogc nothrow {}`
+    9. i.e `@property private static override int my_method(int* ptr) @safe @nogc nothrow {}`
 * Interfaces must be prefixed with `I`, i.e. `IEntity`
 * When declaring properties, methods, etc... visibility modifier can be dropped in favor of global visibility modifier, i.e `private:`. This type of declaration is valid but should be avoided since it's considered implicit
     - Example:
     ```
     class MyClass {
         public:
-        int myPublicInt;
-        string myPublicString;
+        int my_public_int;
+        string my_public_string;
         
         private:
-        int myPrivateInt;
+        int _my_private_int;
 
         public:
-        int myPublicIntMethod() {}
+        int my_public_int_method() {}
         ...
     }
     ```
 * Always describe symbols with ddoc unless name is self-descriptive (for properties)
-* **Avoid exceptions at all costs.** Prefer status return checks and if needed to return nullable
-* Include copyright line at top of source file or in `.reuse/dep5` for resource files or meta files
+* **Avoid exceptions at all costs.** Prefer status return checks and if needed to return `clib.optional`
+* Include copyright line at top of source file or in `REUSE.toml` for resource files or meta files
 * Copyright line is subject to change!
 
 Example of how a module would look like when adhering to those rules:
 ```d
-// SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: (C) 2024 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 Custom clib module.
@@ -107,27 +108,27 @@ public import clib.queue;
 
 /// CustomStruct isCustom type enum
 enum CustomEnum {
-    enumKey1,
-    enumKey2
+    ENUM_KEY_1,
+    ENUM_KEY_1
 }
 
 /// Structure to do custom things
 struct CustomStruct {
     /// Is custom struct
-    CustomEnum isCustom;
+    CustomEnum is_custom;
     /// Struct index
     static int index;
     
-    private int _privateIndex;
-    private shared bool t_isInit;
+    private int _private_index;
+    private shared bool t_is_init;
     
     /// Returns private name
-    @property cstring getName() const {
-        return privateName();
+    @property cstring get_name() const {
+        return private_name();
     }
 
     /// Ditto
-    private cstring privateName() const {
+    private cstring private_name() const {
         return cstring("my private name");
     }
 }

@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /++
 noGC compatible associative array.
 +/
 module clib.map;
 
-// import core.stdc.stdlib: free, malloc, calloc, realloc;
-import core.stdc.string: memcpy;
+// import clib.stdlib: free, malloc, calloc, realloc;
+import clib.string: memcpy;
 
 import clib.memory;
 
@@ -23,12 +23,12 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
     A _allocator;
 
     void insert(K key, V value) @nogc nothrow {
-        if (root is null) { root = allocNode(); }
+        if (root is null) { root = alloc_node(); }
 
-        insertImpl(root, pair, null);
+        insert_impl(root, pair, null);
     }
 
-    private Node* insertImpl(Node* root, Pair pair, Node* parent) {
+    private Node* insert_impl(Node* root, Pair pair, Node* parent) {
         // Root is empty can safely insert
         if (root.filled == 0) {
             root.filled = 1;
@@ -36,7 +36,7 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
             return root;
         }
 
-        if (root.isLeaf) {
+        if (root.is_leaf) {
             // Root is leaf, have to explore in
             // Check if any pairs are already there
             for (size_t i = 0; i < root.filled; ++i) {
@@ -50,7 +50,7 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
             for (i = 0; i < root.filled; ++i) {
                 if (root.pairs[i].key > pair.key) {
                     // found leaf
-                    insertImpl(root.children[i], pair, root);
+                    insert_impl(root.children[i], pair, root);
                     // TODO: what to do if fails
                 }
             }
@@ -84,8 +84,8 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
             }
 
             // Root is full
-            Node* left = allocNode();
-            Node* right = allocNode();
+            Node* left = alloc_node();
+            Node* right = alloc_node();
             const size_t split = (Node.N - 1) / 2;
             // TODO: move leafs LR
             // 0 .. N-1 / 2 go left
@@ -107,7 +107,7 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
                 root.children[0] = left;
                 root.children[1] = right;
                 root.filled = 1;
-                root.isLeaf = true;
+                root.is_leaf = true;
                 // TODO: insert pair into either left or right
             } else {
                 if (parent.filled == Node.N - 1) {
@@ -116,10 +116,10 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
                     root.children[0] = left;
                     root.children[1] = right;
                     root.filled = 1;
-                    root.isLeaf = true;
+                    root.is_leaf = true;
                     // TODO: same
                 } else {
-                    Node* n = allocNode();
+                    Node* n = alloc_node();
                     // TODO: insert into parent and rearrange leafs
                 }
             }
@@ -137,7 +137,7 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         // if (_tree.root is null) return T.init;
     }
 
-    private Node* allocNode() @nogc nothrow {
+    private Node* alloc_node() @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
         return cast(Node*) _allocator.allocate_vptr(Node.sizeof);
     }
@@ -151,7 +151,7 @@ private struct TreeNode(K, V) {
     TreeNode!(K, V)* parent = null;
     TreeNode!(K, V)*[N] children = null;
 
-    bool isLeaf = false;
+    bool is_leaf = false;
     size_t filled;
 
     void free(A: IAllocator!T, T)(A alloc) @nogc nothrow {

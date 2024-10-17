@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: (C) 2023 Alisa Lain <al1-ce@null.net>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: OSL-3.0
 
 /// NoGC compatible format
 module clib.format;
 
-import core.stdc.stdio: snprintf;
-import core.stdc.stdlib: malloc;
+import clib.stdio: snprintf;
+import clib.stdlib: malloc;
 
 import clib.string;
 
