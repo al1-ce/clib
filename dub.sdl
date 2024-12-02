@@ -4,8 +4,21 @@ authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
 license "GPL-3.0"
 
-targetType "library"
-sourcePaths "src/"
-importPaths "src/"
-targetPath "bin/"
+configuration "library" {
+    targetType "library"
+    dflags "-betterC"
+    sourcePaths "src/"
+    importPaths "src/"
+    targetPath "bin/"
+}
 
+configuration "unittest" {
+    targetType "executable"
+    sourcePaths "test/"
+    importPaths "test/"
+    sourcePaths "src/"
+    importPaths "src/"
+    mainSourceFile "test/test.d"
+    targetName "clib-test-library"
+    targetPath "bin/"
+}
