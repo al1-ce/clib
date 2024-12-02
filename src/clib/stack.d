@@ -179,53 +179,52 @@ struct stack(T, A: IAllocator!T = allocator!T) {
     }
 }
 
-@nogc nothrow:
-// Unittests
+@nogc nothrow {
+    // Unittests
+    unittest {
+        stack!int q = stack!int(1, 2, 3, 4);
+        assert(q.size == 4);
+        assert(q.pop == 4);
+        assert(q.pop == 3);
+        assert(q.pop == 2);
+        assert(q.front == 1);
+        assert(q.pop == 1);
+        assert(q.size == 0);
+        assert(q.pop == int.init);
+    }
 
-unittest {
-    stack!int q = stack!int(1, 2, 3, 4);
-    assert(q.size == 4);
-    assert(q.pop == 4);
-    assert(q.pop == 3);
-    assert(q.pop == 2);
-    assert(q.front == 1);
-    assert(q.pop == 1);
-    assert(q.size == 0);
-    assert(q.pop == int.init);
+    unittest {
+        stack!int q;
+        assert(q.empty);
+        assert(q.front == int.init);
+        q.push(3, 2, 1);
+        assert(q.front == 1);
+        q ~= 3;
+        q.push(2);
+        assert(q.front == 2);
+        assert(q.array == [2, 3, 1, 2, 3]);
+    }
+
+    unittest {
+        stack!int q = stack!int(1, 2, 3, 4);
+        q.clear();
+        assert(q.size == 0);
+        assert(q.pop == int.init);
+    }
+
+    unittest {
+        stack!int q = stack!int(1, 2, 3, 4);
+        q.push(5, 6, 7, 8, 9, 10);
+        q.limit_length(7);
+        assert(q.size == 7);
+        assert(q.array == [10, 9, 8, 7, 6, 5, 4]);
+    }
+
+    unittest {
+        stack!int q = stack!int(1, 2, 3, 4);
+        stack!int w = q.clone();
+        assert(q.array.array == w.array.array);
+        w.pop();
+        assert(q.array.array != w.array.array);
+    }
 }
-
-unittest {
-    stack!int q;
-    assert(q.empty);
-    assert(q.front == int.init);
-    q.push(3, 2, 1);
-    assert(q.front == 1);
-    q ~= 3;
-    q.push(2);
-    assert(q.front == 2);
-    assert(q.array == [2, 3, 1, 2, 3]);
-}
-
-unittest {
-    stack!int q = stack!int(1, 2, 3, 4);
-    q.clear();
-    assert(q.size == 0);
-    assert(q.pop == int.init);
-}
-
-unittest {
-    stack!int q = stack!int(1, 2, 3, 4);
-    q.push(5, 6, 7, 8, 9, 10);
-    q.limit_length(7);
-    assert(q.size == 7);
-    assert(q.array == [10, 9, 8, 7, 6, 5, 4]);
-}
-
-unittest {
-    stack!int q = stack!int(1, 2, 3, 4);
-    stack!int w = q.clone();
-    assert(q.array.array == w.array.array);
-    w.pop();
-    assert(q.array.array != w.array.array);
-}
-

@@ -217,73 +217,72 @@ private bool sort_function(T)(T a, T b) @nogc nothrow {
     }
 }
 
-@nogc nothrow:
-// Unittests
+@nogc nothrow {
+    // Unittests
+    unittest {
+        set!int s = set!int(3, 2, 1, 4, 12, 0);
+        assert(s == [0, 1, 2, 3, 4, 12]);
+        assert(s.size == 6);
+        assert(s.front == 0);
+        assert(s.back == 12);
+        s.clear();
+        assert(s.empty);
+        assert(s.size == 0);
+    }
 
-unittest {
-    set!int s = set!int(3, 2, 1, 4, 12, 0);
-    assert(s == [0, 1, 2, 3, 4, 12]);
-    assert(s.size == 6);
-    assert(s.front == 0);
-    assert(s.back == 12);
-    s.clear();
-    assert(s.empty);
-    assert(s.size == 0);
+    unittest {
+        set!int s = set!int(1, 2, 3);
+        s ~= 4;
+        int[2] arr = [0, -1];
+        s ~= arr;
+        assert(s == [-1, 0, 1, 2, 3, 4]);
+    }
+
+    unittest {
+        set!int s = set!int(1, 2, 3);
+        s.insert(-1, 2, 5, 6, 12);
+        assert(s == [-1, 1, 2, 3, 5, 6, 12]);
+        assert(s.has(1));
+        assert(!s.has(15));
+    }
+
+    unittest {
+        set!int s;
+        s.reserve(12);
+        assert(s.capacity == 12);
+        assert(s.size == 0);
+        s.insert(2);
+        s.shrink();
+        assert(s.size == 1);
+        assert(s == [2]);
+        assert(s.capacity == 1);
+    }
+
+    unittest {
+        set!(char*) s;
+        char*[5] a = [
+            cast(char*)"abcd".ptr,
+            cast(char*)"cbda".ptr,
+            cast(char*)"dcba".ptr,
+            cast(char*)"add".ptr,
+            cast(char*)"remove".ptr
+        ];
+        s.insert(a);
+        char*[5] b = [
+            cast(char*)"add".ptr,
+            cast(char*)"abcd".ptr,
+            cast(char*)"cbda".ptr,
+            cast(char*)"dcba".ptr,
+            cast(char*)"remove".ptr
+        ];
+        import clib.string: strcmp;
+        assert(strcmp(s[0], cast(char*) "abcd".ptr) == 0);
+        assert(strcmp(s[1], cast(char*) "add".ptr) == 0);
+    }
+
+    unittest {
+        bool revFunc(int a, int b) @nogc nothrow {return a < b;}
+        set!(int, revFunc) s = set!(int, revFunc)(1, 2, 3, 5, 12, 0);
+        assert(s == [12, 5, 3, 2, 1, 0]);
+    }
 }
-
-unittest {
-    set!int s = set!int(1, 2, 3);
-    s ~= 4;
-    int[2] arr = [0, -1];
-    s ~= arr;
-    assert(s == [-1, 0, 1, 2, 3, 4]);
-}
-
-unittest {
-    set!int s = set!int(1, 2, 3);
-    s.insert(-1, 2, 5, 6, 12);
-    assert(s == [-1, 1, 2, 3, 5, 6, 12]);
-    assert(s.has(1));
-    assert(!s.has(15));
-}
-
-unittest {
-    set!int s;
-    s.reserve(12);
-    assert(s.capacity == 12);
-    assert(s.size == 0);
-    s.insert(2);
-    s.shrink();
-    assert(s.size == 1);
-    assert(s == [2]);
-    assert(s.capacity == 1);
-}
-
-unittest {
-    set!(char*) s;
-    char*[5] a = [
-        cast(char*)"abcd".ptr,
-        cast(char*)"cbda".ptr,
-        cast(char*)"dcba".ptr,
-        cast(char*)"add".ptr,
-        cast(char*)"remove".ptr
-    ];
-    s.insert(a);
-    char*[5] b = [
-        cast(char*)"add".ptr,
-        cast(char*)"abcd".ptr,
-        cast(char*)"cbda".ptr,
-        cast(char*)"dcba".ptr,
-        cast(char*)"remove".ptr
-    ];
-    import clib.string: strcmp;
-    assert(strcmp(s[0], cast(char*) "abcd".ptr) == 0);
-    assert(strcmp(s[1], cast(char*) "add".ptr) == 0);
-}
-
-unittest {
-    bool revFunc(int a, int b) @nogc nothrow {return a < b;}
-    set!(int, revFunc) s = set!(int, revFunc)(1, 2, 3, 5, 12, 0);
-    assert(s == [12, 5, 3, 2, 1, 0]);
-}
-

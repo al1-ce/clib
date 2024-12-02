@@ -46,35 +46,36 @@ private bool IS_VALID_ITERABLE(T)() @nogc nothrow {
     }
 }
 
-unittest {
-    int[12] arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    auto f = forward_iterator!(typeof(arr), int)(arr, arr.length);
-    int i = 0;
-    foreach (int el; f) {
-        assert(el == i + 1);
-        ++i;
+@nogc nothrow {
+    unittest {
+        int[12] arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        auto f = forward_iterator!(typeof(arr), int)(arr, arr.length);
+        int i = 0;
+        foreach (int el; f) {
+            assert(el == i + 1);
+            ++i;
+        }
+    }
+
+    unittest {
+        import clib.string;
+        cstring s = "testing my patience";
+        string t = "testing my patience";
+        int i = 0;
+        foreach (char c; forward_iterator!(cstring, char)(s, s.size)) {
+            assert(c == t[i]);
+            ++i;
+        }
+    }
+
+    unittest {
+        import clib.string;
+        cstring s = "testing my patience";
+        string t = "testing my patience";
+        int i = cast(int) s.size - 1;
+        foreach_reverse (char c; backward_iterator!(cstring, char)(s, s.size)) {
+            assert(c == t[i]);
+            --i;
+        }
     }
 }
-
-unittest {
-    import clib.string;
-    cstring s = "testing my patience";
-    string t = "testing my patience";
-    int i = 0;
-    foreach (char c; forward_iterator!(cstring, char)(s, s.size)) {
-        assert(c == t[i]);
-        ++i;
-    }
-}
-
-unittest {
-    import clib.string;
-    cstring s = "testing my patience";
-    string t = "testing my patience";
-    int i = cast(int) s.size - 1;
-    foreach_reverse (char c; backward_iterator!(cstring, char)(s, s.size)) {
-        assert(c == t[i]);
-        --i;
-    }
-}
-

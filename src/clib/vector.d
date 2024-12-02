@@ -519,208 +519,209 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
 // Unittests
 // TODO: more edge cases
-@nogc nothrow:
+@nogc nothrow {
 
-unittest {
-    int[3] testArr = [2, 5, 6];
-    vector!int v = testArr;
-    assert(v[0..$] == [2, 5, 6]);
+    unittest {
+        int[3] testArr = [2, 5, 6];
+        vector!int v = testArr;
+        assert(v[0..$] == [2, 5, 6]);
 
-    v = vector!int(1, 4, 2);
-    assert(v.array == [1, 4, 2]);
+        v = vector!int(1, 4, 2);
+        assert(v.array == [1, 4, 2]);
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = a;
+        v ~= 2;
+        assert(v[0..$] == [1, 2, 3, 2]);
+        v ~= a;
+        assert(v[0..$] == [1, 2, 3, 2, 1, 2, 3]);
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = a;
+        assert(v[1] == 2);
+        v[1] = 4;
+        assert(v[0..$] == [1, 4, 3]);
+        v = 2;
+        assert(v[0..$] == [2, 2, 2]);
+    }
+
+    unittest {
+        vector!int a = vector!int(1, 2, 3, 4);
+        vector!int b = vector!int(1, 2, 3, 4);
+        assert(a == b);
+        b = vector!int(1, 2, 3, 5);
+        assert(a != b);
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = vector!int(3, 2, 1);
+        assert(v != a);
+        assert(v != [1, 3, 2]);
+        assert(v == [3, 2, 1]);
+        vector!int vb = vector!int(3, 2, 1);
+        assert(v == vb);
+        vb = vector!int(1, 2, 3);
+        assert(v != vb);
+        vb = vector!int(3, 2, 1, 0);
+        assert(v != vb);
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = vector!int(3, 2, 1);
+        vector!int b = v ~ a;
+        assert(b == [3, 2, 1, 1, 2, 3]);
+        b = a ~ v;
+        assert(b == [1, 2, 3, 3, 2, 1]);
+        b = a;
+        b = v ~ b;
+        assert(b == [3, 2, 1, 1, 2, 3]);
+    }
+
+    unittest {
+        int[4] data = [1, 2, 3, 4];
+        vector!int k;
+        k.assign_copy(data.ptr, 4);
+        assert(k[0..$] == [1, 2, 3, 4]);
+        k.free();
+
+        import clib.string;
+        import clib.stdlib;
+        int* d = cast(int*) malloc(4 * int.sizeof);
+        memcpy(d, data.ptr, 4 * int.sizeof);
+        vector!int v;
+        v.assign_pointer(d, 4);
+        assert(v[0..$] == [1, 2, 3, 4]);
+        v.free();
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = a;
+        assert(v.size == 3);
+
+        assert(v.resize(6));
+        assert(v.size == 6);
+
+        assert(v.reserve(12));
+        assert(v.capacity == 12);
+        assert(v.size == 6);
+    }
+
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v = a;
+        assert(v.front == 1);
+        assert(v.back == 3);
+        v.push(4, 5);
+        assert(v.array == [1, 2, 3, 4, 5]);
+        v.push_front(0);
+        assert(v.array == [0, 1, 2, 3, 4, 5]);
+        v.push_front(-2, -1);
+        assert(v.array == [-2, -1, 0, 1, 2, 3, 4, 5]);
+    }
+
+    unittest {
+        vector!char c = "words are not enough";
+        c.erase(9, 12);
+        assert(c.array == "words are enough", c.array);
+        vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+        v.erase(3, 4);
+        assert(v.array == [0, 1, 2, 5, 6]);
+        assert(v.size == 5);
+        vector!int q = vector!int(0, 1, 2, 3, 4, 5, 6, 7, 8);
+        q.erase(2, 5);
+        assert(q.array == [0, 1, 6, 7, 8]);
+        assert(q.size == 5);
+        q.erase(0, 1);
+        assert(q.array == [6, 7, 8]);
+        assert(q.size == 3);
+        q.erase(1, 2);
+        assert(q.array == [6]);
+        assert(q.size == 1);
+
+    }
+
+    unittest {
+        vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+        assert(v.reserve(20));
+        assert(v.shrink());
+        assert(v.size == 7);
+    }
+
+    unittest {
+        vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
+        v.pop();
+        v.pop_front();
+        assert(v.array == [1, 2, 3, 4, 5]);
+        v.clear();
+        assert(v.pop_front() == int.init);
+        assert(v.pop() == int.init);
+        assert(v.size == 0);
+    }
+
+    unittest {
+        vector!int v = vector!int(0, 1, 2, 3);
+        v.insert(2, 12);
+        assert(v.array == [0, 1, 12, 2, 3]);
+        v.insert(0, 13);
+        assert(v.array == [13, 0, 1, 12, 2, 3]);
+        v.insert(v.size - 1, 14);
+        assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
+        v.insert(v.size, 15);
+        assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
+    }
+
+    unittest {
+        vector!int va = vector!int(0, 1);
+        vector!int vb = vector!int(2, 3);
+        va.swap(&vb);
+        assert(va.array == [2, 3]);
+        assert(vb.array == [0, 1]);
+    }
+
+    unittest {
+        vector!int v = vector!int(0);
+        v.clear();
+        assert(v.size == 0);
+        assert(v.capacity == 1);
+    }
+
+    unittest {
+        vector!char v = "testing man";
+        assert(v == "testing man");
+    }
+
+    unittest {
+        vector!char v;
+        v ~= "test";
+        char[4] t = ['t', 'e', 's', 't'];
+        assert(v == t);
+        assert(v == "test");
+    }
+
+    unittest {
+        vector!char v = "no ";
+        vector!char n = v ~ "test";
+        assert(n == "no test");
+        n = "there is " ~ n ~ " at all";
+        assert(n == "there is no test at all");
+    }
+
+    unittest {
+        vector!char v = "test";
+        char[5] a = ['t', 'e', 's', 't', '\0'];
+        import clib.string: strcmp;
+        assert(strcmp(v.stringz.data, a.ptr) == 0);
+        char* sz = v.stringz.release();
+        assert(strcmp(sz, a.ptr) == 0);
+        import clib.stdlib;
+        free(sz);
+    }
+
 }
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = a;
-    v ~= 2;
-    assert(v[0..$] == [1, 2, 3, 2]);
-    v ~= a;
-    assert(v[0..$] == [1, 2, 3, 2, 1, 2, 3]);
-}
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = a;
-    assert(v[1] == 2);
-    v[1] = 4;
-    assert(v[0..$] == [1, 4, 3]);
-    v = 2;
-    assert(v[0..$] == [2, 2, 2]);
-}
-
-unittest {
-    vector!int a = vector!int(1, 2, 3, 4);
-    vector!int b = vector!int(1, 2, 3, 4);
-    assert(a == b);
-    b = vector!int(1, 2, 3, 5);
-    assert(a != b);
-}
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = vector!int(3, 2, 1);
-    assert(v != a);
-    assert(v != [1, 3, 2]);
-    assert(v == [3, 2, 1]);
-    vector!int vb = vector!int(3, 2, 1);
-    assert(v == vb);
-    vb = vector!int(1, 2, 3);
-    assert(v != vb);
-    vb = vector!int(3, 2, 1, 0);
-    assert(v != vb);
-}
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = vector!int(3, 2, 1);
-    vector!int b = v ~ a;
-    assert(b == [3, 2, 1, 1, 2, 3]);
-    b = a ~ v;
-    assert(b == [1, 2, 3, 3, 2, 1]);
-    b = a;
-    b = v ~ b;
-    assert(b == [3, 2, 1, 1, 2, 3]);
-}
-
-unittest {
-    int[4] data = [1, 2, 3, 4];
-    vector!int k;
-    k.assign_copy(data.ptr, 4);
-    assert(k[0..$] == [1, 2, 3, 4]);
-    k.free();
-
-    import clib.string;
-    import clib.stdlib;
-    int* d = cast(int*) malloc(4 * int.sizeof);
-    memcpy(d, data.ptr, 4 * int.sizeof);
-    vector!int v;
-    v.assign_pointer(d, 4);
-    assert(v[0..$] == [1, 2, 3, 4]);
-    v.free();
-}
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = a;
-    assert(v.size == 3);
-
-    assert(v.resize(6));
-    assert(v.size == 6);
-
-    assert(v.reserve(12));
-    assert(v.capacity == 12);
-    assert(v.size == 6);
-}
-
-unittest {
-    int[3] a = [1, 2, 3];
-    vector!int v = a;
-    assert(v.front == 1);
-    assert(v.back == 3);
-    v.push(4, 5);
-    assert(v.array == [1, 2, 3, 4, 5]);
-    v.push_front(0);
-    assert(v.array == [0, 1, 2, 3, 4, 5]);
-    v.push_front(-2, -1);
-    assert(v.array == [-2, -1, 0, 1, 2, 3, 4, 5]);
-}
-
-unittest {
-    vector!char c = "words are not enough";
-    c.erase(9, 12);
-    assert(c.array == "words are enough", c.array);
-    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
-    v.erase(3, 4);
-    assert(v.array == [0, 1, 2, 5, 6]);
-    assert(v.size == 5);
-    vector!int q = vector!int(0, 1, 2, 3, 4, 5, 6, 7, 8);
-    q.erase(2, 5);
-    assert(q.array == [0, 1, 6, 7, 8]);
-    assert(q.size == 5);
-    q.erase(0, 1);
-    assert(q.array == [6, 7, 8]);
-    assert(q.size == 3);
-    q.erase(1, 2);
-    assert(q.array == [6]);
-    assert(q.size == 1);
-
-}
-
-unittest {
-    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
-    assert(v.reserve(20));
-    assert(v.shrink());
-    assert(v.size == 7);
-}
-
-unittest {
-    vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
-    v.pop();
-    v.pop_front();
-    assert(v.array == [1, 2, 3, 4, 5]);
-    v.clear();
-    assert(v.pop_front() == int.init);
-    assert(v.pop() == int.init);
-    assert(v.size == 0);
-}
-
-unittest {
-    vector!int v = vector!int(0, 1, 2, 3);
-    v.insert(2, 12);
-    assert(v.array == [0, 1, 12, 2, 3]);
-    v.insert(0, 13);
-    assert(v.array == [13, 0, 1, 12, 2, 3]);
-    v.insert(v.size - 1, 14);
-    assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
-    v.insert(v.size, 15);
-    assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
-}
-
-unittest {
-    vector!int va = vector!int(0, 1);
-    vector!int vb = vector!int(2, 3);
-    va.swap(&vb);
-    assert(va.array == [2, 3]);
-    assert(vb.array == [0, 1]);
-}
-
-unittest {
-    vector!int v = vector!int(0);
-    v.clear();
-    assert(v.size == 0);
-    assert(v.capacity == 1);
-}
-
-unittest {
-    vector!char v = "testing man";
-    assert(v == "testing man");
-}
-
-unittest {
-    vector!char v;
-    v ~= "test";
-    char[4] t = ['t', 'e', 's', 't'];
-    assert(v == t);
-    assert(v == "test");
-}
-
-unittest {
-    vector!char v = "no ";
-    vector!char n = v ~ "test";
-    assert(n == "no test");
-    n = "there is " ~ n ~ " at all";
-    assert(n == "there is no test at all");
-}
-
-unittest {
-    vector!char v = "test";
-    char[5] a = ['t', 'e', 's', 't', '\0'];
-    import clib.string: strcmp;
-    assert(strcmp(v.stringz.data, a.ptr) == 0);
-    char* sz = v.stringz.release();
-    assert(strcmp(sz, a.ptr) == 0);
-    import clib.stdlib;
-    free(sz);
-}
-

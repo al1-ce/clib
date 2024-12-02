@@ -173,53 +173,53 @@ struct queue(T, A: IAllocator!T = allocator!T) {
     }
 }
 
-@nogc nothrow:
-// Unittests
+@nogc nothrow {
+    // Unittests
+    unittest {
+        queue!int q = queue!int(1, 2, 3, 4);
+        assert(q.size == 4);
+        assert(q.pop == 1);
+        assert(q.pop == 2);
+        assert(q.pop == 3);
+        assert(q.front == 4);
+        assert(q.pop == 4);
+        assert(q.size == 0);
+        assert(q.pop == int.init);
+    }
 
-unittest {
-    queue!int q = queue!int(1, 2, 3, 4);
-    assert(q.size == 4);
-    assert(q.pop == 1);
-    assert(q.pop == 2);
-    assert(q.pop == 3);
-    assert(q.front == 4);
-    assert(q.pop == 4);
-    assert(q.size == 0);
-    assert(q.pop == int.init);
+    unittest {
+        queue!int q;
+        assert(q.empty);
+        assert(q.front == int.init);
+        q.push(3, 2, 1);
+        assert(q.front == 3);
+        q ~= 3;
+        q.push(2);
+        assert(q.front == 3);
+        assert(q.array == [3, 2, 1, 3, 2]);
+    }
+
+    unittest {
+        queue!int q = queue!int(1, 2, 3, 4);
+        q.clear();
+        assert(q.size == 0);
+        assert(q.pop == int.init);
+    }
+
+    unittest {
+        queue!int q = queue!int(1, 2, 3, 4);
+        q.push(5, 6, 7, 8, 9, 10);
+        q.limit_length(7);
+        assert(q.size == 7);
+        assert(q.array == [1, 2, 3, 4, 5, 6, 7]);
+    }
+
+    unittest {
+        queue!int q = queue!int(1, 2, 3, 4);
+        queue!int w = q.clone();
+        assert(q.array.array == w.array.array);
+        w.pop();
+        assert(q.array.array != w.array.array);
+    }
+
 }
-
-unittest {
-    queue!int q;
-    assert(q.empty);
-    assert(q.front == int.init);
-    q.push(3, 2, 1);
-    assert(q.front == 3);
-    q ~= 3;
-    q.push(2);
-    assert(q.front == 3);
-    assert(q.array == [3, 2, 1, 3, 2]);
-}
-
-unittest {
-    queue!int q = queue!int(1, 2, 3, 4);
-    q.clear();
-    assert(q.size == 0);
-    assert(q.pop == int.init);
-}
-
-unittest {
-    queue!int q = queue!int(1, 2, 3, 4);
-    q.push(5, 6, 7, 8, 9, 10);
-    q.limit_length(7);
-    assert(q.size == 7);
-    assert(q.array == [1, 2, 3, 4, 5, 6, 7]);
-}
-
-unittest {
-    queue!int q = queue!int(1, 2, 3, 4);
-    queue!int w = q.clone();
-    assert(q.array.array == w.array.array);
-    w.pop();
-    assert(q.array.array != w.array.array);
-}
-
