@@ -113,74 +113,73 @@ struct optional(T) {
     }
 }
 
-@nogc nothrow:
-// Unittests
+@nogc nothrow {
+    // Unittests
+    unittest {
+        optional!int opt;
+        assert(opt.has_value == false);
+        assert(opt.valueOr(5) == 5);
+        opt = 1;
+        assert(opt.has_value == true);
+        assert(opt.value == 1);
+    }
 
-unittest {
-    optional!int opt;
-    assert(opt.has_value == false);
-    assert(opt.valueOr(5) == 5);
-    opt = 1;
-    assert(opt.has_value == true);
-    assert(opt.value == 1);
+    unittest {
+        optional!int opt;
+        opt = 2;
+        opt = null;
+        assert(opt.has_value == false);
+        assert(opt.valueOr(5) == 5);
+        opt = optional!int(3);
+        assert(opt == 3);
+        assert(opt != null);
+        optional!int b = optional!int(3);
+        assert(opt == b);
+    }
+
+    unittest {
+        optional!int a = 4;
+        optional!int b;
+        a.swap(b);
+        assert(a == null);
+        assert(b == 4);
+        b.reset();
+        assert(b == null);
+    }
+
+    unittest {
+        import clib.vector;
+        optional!(vector!int) a;
+        vector!int v = vector!int(1, 2, 3, 4);
+        a = v;
+        assert(a.has_value);
+        assert(a.value == [1, 2, 3, 4]);
+        optional!(vector!int) b;
+        b = a;
+        assert(a.has_value);
+        assert(a.value == [1, 2, 3, 4]);
+        assert(b.has_value);
+        assert(b.value == [1, 2, 3, 4]);
+        assert(a == b);
+        import clib.stdlib;
+        void test1(optional!(vector!int) o) { free(o.value.release()); }
+        void test2(vector!int v) { free(v.release()); }
+
+        test1(a);
+        test2(a.value);
+
+        assert(a.has_value);
+        assert(a.value == [1, 2, 3, 4]);
+        assert(b.has_value);
+        assert(b.value == [1, 2, 3, 4]);
+        assert(a == b);
+    }
+
+    unittest {
+        import clib.vector;
+        optional!int o1 = 15;
+        optional!(vector!int) o2 = vector!int(1, 2, 3);
+        cast(void) o1.toHash;
+        cast(void) o2.toHash;
+    }
 }
-
-unittest {
-    optional!int opt;
-    opt = 2;
-    opt = null;
-    assert(opt.has_value == false);
-    assert(opt.valueOr(5) == 5);
-    opt = optional!int(3);
-    assert(opt == 3);
-    assert(opt != null);
-    optional!int b = optional!int(3);
-    assert(opt == b);
-}
-
-unittest {
-    optional!int a = 4;
-    optional!int b;
-    a.swap(b);
-    assert(a == null);
-    assert(b == 4);
-    b.reset();
-    assert(b == null);
-}
-
-unittest {
-    import clib.vector;
-    optional!(vector!int) a;
-    vector!int v = vector!int(1, 2, 3, 4);
-    a = v;
-    assert(a.has_value);
-    assert(a.value == [1, 2, 3, 4]);
-    optional!(vector!int) b;
-    b = a;
-    assert(a.has_value);
-    assert(a.value == [1, 2, 3, 4]);
-    assert(b.has_value);
-    assert(b.value == [1, 2, 3, 4]);
-    assert(a == b);
-    import clib.stdlib;
-    void test1(optional!(vector!int) o) { free(o.value.release()); }
-    void test2(vector!int v) { free(v.release()); }
-
-    test1(a);
-    test2(a.value);
-
-    assert(a.has_value);
-    assert(a.value == [1, 2, 3, 4]);
-    assert(b.has_value);
-    assert(b.value == [1, 2, 3, 4]);
-    assert(a == b);
-}
-
-unittest {
-    import clib.vector;
-    optional!int o1 = 15;
-    optional!(vector!int) o2 = vector!int(1, 2, 3);
-    cast(void) o1.toHash;
-    cast(void) o2.toHash;
-}
-
