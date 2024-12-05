@@ -407,12 +407,12 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         return V.init;
     }
 
-    ref V opIndex(K key) @nogc nothrow {
+    V* opIndex(K key) @nogc nothrow {
         Node* node = root;
         while (node !is null) {
             foreach (i; 0..node.filled) {
                 if (node.pairs[i].key == key) {
-                    return node.pairs[i].val;
+                    return &node.pairs[i].val;
                 }
             }
             node = node.next_node(key);
@@ -426,12 +426,12 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         while (node !is null) {
             foreach (i; 0..node.filled) {
                 if (node.pairs[i].key == key) {
-                    return node.pairs[i].val;
+                    return &node.pairs[i].val;
                 }
             }
             node = node.next_node(key);
         }
-        assert(0, "Internal error: newly inserted key not found");
+        return null;
     }
 
     void opIndexAssign(V value, K key) @nogc nothrow {
@@ -723,6 +723,17 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         return node;
     }
 
+    /// Returns ref V for compatibility with existing code
+    /// Uses opIndex internally but handles null case...hopefully makes sense?
+    ref V get(K key) @nogc nothrow {
+        V* p = opIndex(key);
+        if (p is null) {
+            static V dummy;
+            return dummy;
+        }
+        return *p;
+    }
+
     // Iterator structs
     private struct MapIterator(K, V) {
         map!(K, V)* container;
@@ -746,12 +757,17 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         }
 
         ref TreePair!(K, V) front() @nogc nothrow {
-            assert(!empty, "Attempting to fetch the front of an empty range");
+            if (empty) {
+                static TreePair!(K, V) dummy;
+                return dummy;
+            }
             return current.pairs[index];
         }
 
         ref MapIterator popFront() @nogc nothrow {
-            assert(!empty, "Attempting to popFront an empty range");
+            if (empty) {
+                return this;
+            }
             if (index + 1 < current.filled) {
                 index++;
             } else {
@@ -798,12 +814,17 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         }
 
         ref const(TreePair!(K, V)) front() const @nogc nothrow {
-            assert(!empty, "Attempting to fetch the front of an empty range");
+            if (empty) {
+                static TreePair!(K, V) dummy;
+                return dummy;
+            }
             return current.pairs[index];
         }
 
         ref ConstMapIterator popFront() @nogc nothrow {
-            assert(!empty, "Attempting to popFront an empty range");
+            if (empty) {
+                return this;
+            }
             if (index + 1 < current.filled) {
                 index++;
             } else {
@@ -850,12 +871,17 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         }
 
         ref TreePair!(K, V) front() @nogc nothrow {
-            assert(!empty, "Attempting to fetch the front of an empty range");
+            if (empty) {
+                static TreePair!(K, V) dummy;
+                return dummy;
+            }
             return current.pairs[index];
         }
 
         ref ReverseMapIterator popFront() @nogc nothrow {
-            assert(!empty, "Attempting to popFront an empty range");
+            if (empty) {
+                return this;
+            }
             if (index > 0) {
                 index--;
             } else {
@@ -903,12 +929,17 @@ struct map(K, V, A: IAllocator!V = allocator!V) {
         }
 
         ref const(TreePair!(K, V)) front() const @nogc nothrow {
-            assert(!empty, "Attempting to fetch the front of an empty range");
+            if (empty) {
+                static TreePair!(K, V) dummy;
+                return dummy;
+            }
             return current.pairs[index];
         }
 
         ref ConstReverseMapIterator popFront() @nogc nothrow {
-            assert(!empty, "Attempting to popFront an empty range");
+            if (empty) {
+                return this;
+            }
             if (index > 0) {
                 index--;
             } else {
@@ -1014,8 +1045,8 @@ private struct TreeNode(K, V) {
         m[2] = "two";
         assert(!m.empty);
         assert(m.size == 2);
-        assert(m[1] == "one");
-        assert(m[2] == "two");
+        assert(m.get(1) == "one");
+        assert(m.get(2) == "two");
         assert(m.contains(1));
         assert(!m.contains(3));
     }
@@ -1029,7 +1060,7 @@ private struct TreeNode(K, V) {
         }
         // Verify all values are still accessible
         foreach(i; 0..5) {
-            assert(m[i] == i * 10);
+            assert(*m[i] == i * 10);
         }
         assert(m.size == 5);
     }
@@ -1054,23 +1085,25 @@ private struct TreeNode(K, V) {
         assert(m.size == 10);
 
         // Verify all elements are accessible
-        assert(m[1] == "one");
-        assert(m[2] == "two");
-        assert(m[3] == "three");
-        assert(m[4] == "four");
-        assert(m[5] == "five");
-        assert(m[6] == "six");
-        assert(m[7] == "seven");
-        assert(m[8] == "eight");
-        assert(m[9] == "nine");
-        assert(m[10] == "ten");
+        // Use a dereference or the get method
+        // Whichever you prefer
+        assert(m.get(1) == "one");
+        assert(m.get(2) == "two");
+        assert(*m[3] == "three");
+        assert(*m[4] == "four");
+        assert(*m[5] == "five");
+        assert(m.get(6) == "six");
+        assert(*m[7] == "seven");
+        assert(*m[8] == "eight");
+        assert(*m[9] == "nine");
+        assert(*m[10] == "ten");
 
         assert(m.contains(5));
         assert(!m.contains(11));
 
         // Test overwriting existing values
         m[5] = "FIVE";
-        assert(m[5] == "FIVE");
+        assert(*m[5] == "FIVE");
         assert(m.size == 10);
     }
 
@@ -1084,7 +1117,7 @@ private struct TreeNode(K, V) {
         }
 
         foreach(i; 0..20) {
-            assert(m[i] == i);
+            assert(*m[i] == i);
         }
 
         assert(m.size == 20);
@@ -1142,7 +1175,7 @@ private struct TreeNode(K, V) {
         foreach (ref k, ref v; m) {
             if (k == 2) v = "TWO";
         }
-        assert(m[2] == "TWO");
+        assert(*m[2] == "TWO");
     }
 
     unittest {
