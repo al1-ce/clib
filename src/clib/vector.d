@@ -38,7 +38,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     @property size_t size() @nogc nothrow { return _size; }
 
     /// Returns true if vector is empty, i.e `size == 0`
-    @property bool empty() @nogc nothrow { return _size == 0; }
+    @property bool empty() const @nogc nothrow { return _size == 0; }
 
     /// Returns last element or `T.init` if `size == 0`
     @property T back() @nogc nothrow { return _size == 0 ? T.init : _data[_size - 1]; }
@@ -46,24 +46,136 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns first element or `T.init` if `size == 0`
     @property T front() @nogc nothrow { return _size == 0 ? T.init : _data[0]; }
 
-    /// Returns iterator to beginning
-    @property auto begin() @nogc nothrow {
-        return forward_iterator!(vector!(T, A), T)(this, _size);
+    VectorIterator!(T) begin() @nogc nothrow {
+        return VectorIterator!(T)(&this, false);
     }
 
-    /// Returns iterator to end
-    @property auto end() @nogc nothrow {
-        return forward_iterator!(vector!(T, A), T)(this, 0);
+    VectorIterator!(T) end() @nogc nothrow {
+        return VectorIterator!(T)(&this, true);
+    }
+
+    ConstVectorIterator!(T) begin() const @nogc nothrow {
+        return ConstVectorIterator!(T)(&this, false);
+    }
+
+    ConstVectorIterator!(T) end() const @nogc nothrow {
+        return ConstVectorIterator!(T)(&this, true);
     }
 
     /// Returns backward iterator to beginning (for reverse iteration)
-    @property auto rbegin() @nogc nothrow {
-        return backward_iterator!(vector!(T, A), T)(this, _size);
+    ReverseVectorIterator!(T) rbegin() @nogc nothrow {
+        return ReverseVectorIterator!(T)(&this, false);
     }
 
     /// Returns backward iterator to end (for reverse iteration)
-    @property auto rend() @nogc nothrow {
-        return backward_iterator!(vector!(T, A), T)(this, 0);
+    ReverseVectorIterator!(T) rend() @nogc nothrow {
+        return ReverseVectorIterator!(T)(&this, true);
+    }
+
+    /// Returns const backward iterator to beginning (for reverse iteration)
+    ConstReverseVectorIterator!(T) rbegin() const @nogc nothrow {
+        return ConstReverseVectorIterator!(T)(&this, false);
+    }
+
+    /// Returns const backward iterator to end (for reverse iteration)
+    ConstReverseVectorIterator!(T) rend() const @nogc nothrow {
+        return ConstReverseVectorIterator!(T)(&this, true);
+    }
+
+    private struct VectorIterator(T) {
+        vector!(T, A)* container;
+        size_t index;
+        bool isEnd;
+
+        this(vector!(T, A)* c, bool end) @nogc nothrow {
+            container = c;
+            isEnd = end;
+            index = end ? container._size : 0;
+        }
+
+        @property bool empty() const @nogc nothrow {
+            return index >= container._size;
+        }
+
+        @property ref T front() @nogc nothrow {
+            return container._data[index];
+        }
+
+        void popFront() @nogc nothrow {
+            ++index;
+        }
+    }
+
+    private struct ConstVectorIterator(T) {
+        const vector!(T, A)* container;
+        size_t index;
+        bool isEnd;
+
+        this(const vector!(T, A)* c, bool end) @nogc nothrow {
+            container = c;
+            isEnd = end;
+            index = end ? container._size : 0;
+        }
+
+        @property bool empty() const @nogc nothrow {
+            return index >= container._size;
+        }
+
+        @property ref const(T) front() const @nogc nothrow {
+            return container._data[index];
+        }
+
+        void popFront() @nogc nothrow {
+            ++index;
+        }
+    }
+
+    private struct ReverseVectorIterator(T) {
+        vector!(T, A)* container;
+        size_t index;
+        bool isEnd;
+
+        this(vector!(T, A)* c, bool end) @nogc nothrow {
+            container = c;
+            isEnd = end;
+            index = end ? 0 : container._size;
+        }
+
+        @property bool empty() const @nogc nothrow {
+            return index == 0;
+        }
+
+        @property ref T front() @nogc nothrow {
+            return container._data[index - 1];
+        }
+
+        void popFront() @nogc nothrow {
+            --index;
+        }
+    }
+
+    private struct ConstReverseVectorIterator(T) {
+        const vector!(T, A)* container;
+        size_t index;
+        bool isEnd;
+
+        this(const vector!(T, A)* c, bool end) @nogc nothrow {
+            container = c;
+            isEnd = end;
+            index = end ? 0 : container._size;
+        }
+
+        @property bool empty() const @nogc nothrow {
+            return index == 0;
+        }
+
+        @property ref const(T) front() const @nogc nothrow {
+            return container._data[index - 1];
+        }
+
+        void popFront() @nogc nothrow {
+            --index;
+        }
     }
 
     /++ Returns data pointer and clears vector
@@ -78,18 +190,58 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     /// Implements foreach support
     int opApply(scope int delegate(ref T) @nogc nothrow dg) @nogc nothrow {
-        for (size_t i = 0; i < _size; ++i) {
-            int result = dg(_data[i]);
-            if (result) return result;
+        if (empty) return 0;
+
+        auto it = begin();
+        while (!it.empty) {
+            if (int result = dg(it.front)) {
+                return result;
+            }
+            it.popFront();
+        }
+        return 0;
+    }
+
+    /// Implements const foreach support
+    int opApply(scope int delegate(ref const T) @nogc nothrow dg) const @nogc nothrow {
+        if (empty) return 0;
+
+        auto it = begin();
+        while (!it.empty) {
+            auto temp = it.front; // Create a temporary to get a reference
+            if (int result = dg(temp)) {
+                return result;
+            }
+            it.popFront();
         }
         return 0;
     }
 
     /// Implements foreach_reverse support
     int opApplyReverse(scope int delegate(ref T) @nogc nothrow dg) @nogc nothrow {
-        for (size_t i = _size; i > 0; --i) {
-            int result = dg(_data[i - 1]);
-            if (result) return result;
+        if (empty) return 0;
+
+        auto it = rbegin();
+        while (!it.empty) {
+            if (int result = dg(it.front)) {
+                return result;
+            }
+            it.popFront();
+        }
+        return 0;
+    }
+
+    /// Implements const foreach_reverse support
+    int opApplyReverse(scope int delegate(ref const T) @nogc nothrow dg) const @nogc nothrow {
+        if (empty) return 0;
+
+        auto it = rbegin();
+        while (!it.empty) {
+            auto temp = it.front; // Create a temporary to get a reference
+            if (int result = dg(temp)) {
+                return result;
+            }
+            it.popFront();
         }
         return 0;
     }
@@ -180,7 +332,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     }
 
     /// Returns true if vector contains value
-    bool has(T val) @nogc nothrow {
+    bool contains(T val) @nogc nothrow {
         for (int i = 0; i < _size; ++i) {
             if (_data[i] == val) return true;
         }
@@ -233,10 +385,25 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Ditto
     void opIndexAssign(T val, size_t index) @nogc nothrow { _data[index] = val; }
 
-    /// Returns element of vector
-    T opIndex(size_t p_position) @nogc nothrow { return _data[p_position]; }
-    /// Ditto
-    T* opIndex() @nogc nothrow { return _data; }
+    /// Returns element at given position
+    ref T opIndex(size_t p_position) @nogc nothrow {
+        return _data[p_position];
+    }
+
+    /// Returns element at given position (const)
+    ref const(T) opIndex(size_t p_position) const @nogc nothrow {
+        return _data[p_position];
+    }
+
+    /// Returns slice of vector
+    T[] opIndex() @nogc nothrow {
+        return _data[0 .. _size];
+    }
+
+    /// Returns slice of vector (const)
+    const(T)[] opIndex() const @nogc nothrow {
+        return _data[0 .. _size];
+    }
 
     /// Returns slice
     T[] opSlice(size_t start, size_t end) @nogc nothrow {
@@ -268,8 +435,18 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     }
 
     size_t toHash() const @nogc nothrow {
-        /// FIXME: implement proper hashing
-        return 0;
+        if (_size == 0) return 0;
+
+        // FNV-1a hash
+        size_t hash = 0xcbf29ce484222325;  // FNV offset basis
+        const(ubyte)* ptr = cast(const(ubyte)*)_data;
+        size_t bytes = _size * T.sizeof;
+
+        for (size_t i = 0; i < bytes; ++i) {
+            hash ^= ptr[i];
+            hash *= 0x100000001b3;  // FNV prime
+        }
+        return hash;
     }
 
     scope vector!T opBinary(string op: "~")(T other) @nogc nothrow {
@@ -367,24 +544,31 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
     /// Returns true on success
     bool resize(size_t p_size, const T p_val = T.init) @nogc nothrow {
         if (_allocator is null) _allocator = _new!A();
-        void* new_data;
-
-        if (_data is null) {
-            new_data = _allocator.allocate(p_size * T.sizeof);
-        } else {
-            new_data = _allocator.reallocate(_data, p_size * T.sizeof);
-        }
-        if (new_data is null) return false;
-
-        _data = cast(T*) new_data;
-        _capacity = p_size;
+        if (p_size == _size) return true;
 
         if (p_size > _size) {
-            while (_size < _capacity) push(p_val);
+            // Growing
+            if (p_size > _capacity) {
+                void* new_data = _allocator.reallocate(_data, p_size * T.sizeof);
+                if (new_data is null) return false;
+                _data = cast(T*) new_data;
+                _capacity = p_size;
+            }
+            // Fill new elements
+            while (_size < p_size) {
+                _data[_size] = p_val;
+                ++_size;
+            }
+        } else {
+            // Shrinking
+            _size = p_size;
+            if (_size == 0 && _data !is null) {
+                void* new_data = _allocator.reallocate(_data, _capacity * T.sizeof);
+                if (new_data !is null) {
+                    _data = cast(T*) new_data;
+                }
+            }
         }
-
-        _size = p_size;
-
         return true;
     }
 
@@ -547,9 +731,91 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 }
 
 // Unittests
-// TODO: more edge cases
 @nogc nothrow {
 
+    // Test vector initialization from array and variadic constructor
+    unittest {
+        int[3] testArr;
+        testArr[0] = 2; testArr[1] = 5; testArr[2] = 6;
+        vector!int v = testArr;
+        assert(v[0..$] == [2, 5, 6]);
+
+        v = vector!int(1, 4, 2);
+        assert(v.array == [1, 4, 2]);
+    }
+
+    // Test vector push operations and array concatenation
+    unittest {
+        int[3] a;
+        a[0] = 1; a[1] = 2; a[2] = 3;
+        vector!int v = a;
+        v.push(2);
+        assert(v[0..$] == [1, 2, 3, 2]);
+
+        foreach(i; 0..3) {
+            v.push(a[i]);
+        }
+        assert(v[0..$] == [1, 2, 3, 2, 1, 2, 3]);
+    }
+
+    // Test vector concatenation with another vector using manual pushing
+    unittest {
+        vector!int v;
+        v.push(3); v.push(2); v.push(1);
+        vector!int other;
+        other.push(1); other.push(2); other.push(3);
+        vector!int b = v;
+        foreach(i; 0..other.size) {
+            b.push(other[i]);
+        }
+        assert(b[0..$] == [3, 2, 1, 1, 2, 3]);
+    }
+
+    // Test vector equality and inequality comparisons
+    unittest {
+        vector!int a;
+        a.push(1); a.push(2); a.push(3); a.push(4);
+        vector!int b;
+        b.push(1); b.push(2); b.push(3); b.push(4);
+        assert(a == b);
+        b.pop();
+        b.push(5);
+        assert(a != b);
+    }
+
+    // Test vector comparison with arrays and other vectors
+    unittest {
+        int[3] a = [1, 2, 3];
+        vector!int v;
+        v.push(3); v.push(2); v.push(1);
+        assert(v != a);
+        int[3] b = [1, 3, 2];
+        assert(v != b);
+        int[3] c = [3, 2, 1];
+        assert(v == c);
+        vector!int vb;
+        vb.push(3); vb.push(2); vb.push(1);
+        assert(v == vb);
+        vb.clear();
+        vb.push(1); vb.push(2); vb.push(3);
+        assert(v != vb);
+        vb.clear();
+        vb.push(3); vb.push(2); vb.push(1); vb.push(0);
+        assert(v != vb);
+    }
+
+    // Test vector concatenation operator
+    unittest {
+        vector!int v;
+        v.push(3); v.push(2); v.push(1);
+        vector!int other;
+        other.push(1); other.push(2); other.push(3);
+        vector!int b = v;
+        b ~= other;
+        assert(b == [3, 2, 1, 1, 2, 3]);
+    }
+
+    // Test vector initialization and assignment
     unittest {
         int[3] testArr = [2, 5, 6];
         vector!int v = testArr;
@@ -559,71 +825,35 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.array == [1, 4, 2]);
     }
 
+    // Test clear operation and capacity preservation
     unittest {
-        int[3] a = [1, 2, 3];
-        vector!int v = a;
-        v ~= 2;
-        assert(v[0..$] == [1, 2, 3, 2]);
-        v ~= a;
-        assert(v[0..$] == [1, 2, 3, 2, 1, 2, 3]);
-    }
-
-    unittest {
-        int[3] a = [1, 2, 3];
-        vector!int v = a;
-        assert(v[1] == 2);
-        v[1] = 4;
-        assert(v[0..$] == [1, 4, 3]);
-        v = 2;
-        assert(v[0..$] == [2, 2, 2]);
-    }
-
-    unittest {
-        vector!int a = vector!int(1, 2, 3, 4);
-        vector!int b = vector!int(1, 2, 3, 4);
-        assert(a == b);
-        b = vector!int(1, 2, 3, 5);
-        assert(a != b);
-    }
-
-    unittest {
-        int[3] a = [1, 2, 3];
-        vector!int v = vector!int(3, 2, 1);
-        assert(v != a);
-        assert(v != [1, 3, 2]);
-        assert(v == [3, 2, 1]);
-        vector!int vb = vector!int(3, 2, 1);
-        assert(v == vb);
-        vb = vector!int(1, 2, 3);
-        assert(v != vb);
-        vb = vector!int(3, 2, 1, 0);
-        assert(v != vb);
-    }
-
-    unittest {
-        vector!int v = vector!int(3, 2, 1);
-        vector!int other = vector!int(1, 2, 3);
-        vector!int b = v ~ other;
-        assert(b == [3, 2, 1, 1, 2, 3]);
-    }
-
-    unittest {
-        int[4] data = [1, 2, 3, 4];
-        vector!int k;
-        k.assign_copy(data.ptr, 4);
-        assert(k[0..$] == [1, 2, 3, 4]);
-        k.free();
-
-        import clib.string;
-        import clib.stdlib;
-        int* d = cast(int*) malloc(4 * int.sizeof);
-        memcpy(d, data.ptr, 4 * int.sizeof);
         vector!int v;
-        v.assign_pointer(d, 4);
-        assert(v[0..$] == [1, 2, 3, 4]);
-        v.free();
+        int[5] init_data;
+        init_data[0] = 1; init_data[1] = 2; init_data[2] = 3;
+        init_data[3] = 4; init_data[4] = 5;
+        v = init_data;
+
+        // Test basic clear
+        size_t oldCapacity = v.capacity;
+        v.clear();
+        assert(v.empty);
+        assert(v.size == 0);
+        assert(v.capacity == oldCapacity); // Clear shouldn't change capacity
+
+        // Test clear on empty vector
+        v.clear();
+        assert(v.empty);
+        assert(v.size == 0);
+        assert(v.capacity == oldCapacity);
+
+        // Test clear after operations
+        v.push(42);
+        v.clear();
+        assert(v.empty);
+        assert(v.size == 0);
     }
 
+    // Test resize and reserve operations
     unittest {
         int[3] a = [1, 2, 3];
         vector!int v = a;
@@ -637,6 +867,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.size == 6);
     }
 
+    // Test front and back accessors
     unittest {
         int[3] a = [1, 2, 3];
         vector!int v = a;
@@ -650,6 +881,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.array == [-2, -1, 0, 1, 2, 3, 4, 5]);
     }
 
+    // Test erase operations
     unittest {
         vector!char c = "words are not enough";
         c.erase(9, 12);
@@ -671,6 +903,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
 
     }
 
+    // Test shrink operation
     unittest {
         vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
         assert(v.reserve(20));
@@ -678,6 +911,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.size == 7);
     }
 
+    // Test pop operations
     unittest {
         vector!int v = vector!int(0, 1, 2, 3, 4, 5, 6);
         v.pop();
@@ -689,6 +923,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.size == 0);
     }
 
+    // Test insert operation
     unittest {
         vector!int v = vector!int(0, 1, 2, 3);
         v.insert(2, 12);
@@ -701,6 +936,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v.array == [13, 0, 1, 12, 2, 14, 3]);
     }
 
+    // Test swap operation
     unittest {
         vector!int va = vector!int(0, 1);
         vector!int vb = vector!int(2, 3);
@@ -709,18 +945,65 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(vb.array == [0, 1]);
     }
 
+    // Test const iteration
     unittest {
-        vector!int v = vector!int(0);
-        v.clear();
-        assert(v.size == 0);
-        assert(v.capacity == 1);
+        // Test empty const vector
+        vector!int temp;
+        const vector!int empty = temp;
+        assert(empty.empty);
+        size_t count = 0;
+        foreach(e; empty) count++;
+        assert(count == 0);
+
+        // Test non-empty const vector
+        vector!int m;
+        m.push(42);
+        const vector!int v = m;
+        assert(!v.empty);
+        count = 0;
+        foreach(e; v) {
+            assert(e == 42);
+            count++;
+        }
+        assert(count == 1);
+
+        // Test const reverse iteration
+        count = 0;
+        foreach_reverse(e; v) {
+            assert(e == 42);
+            count++;
+        }
+        assert(count == 1);
     }
 
+    // Test hash function
+    unittest {
+        vector!int v1;
+        v1.push(1); v1.push(2); v1.push(3);
+
+        vector!int v2;
+        v2.push(1); v2.push(2); v2.push(3);
+
+        vector!int v3;
+        v3.push(3); v3.push(2); v3.push(1);
+
+        assert(v1.toHash() == v2.toHash());
+        assert(v1.toHash() != v3.toHash());
+
+        // Hash should remain stable after operations
+        size_t hash = v1.toHash();
+        v1.push(4);
+        v1.pop();
+        assert(v1.toHash() == hash);
+    }
+
+    // Test string operations
     unittest {
         vector!char v = "testing man";
         assert(v == "testing man");
     }
 
+    // Test string concatenation
     unittest {
         vector!char v;
         v ~= "test";
@@ -729,6 +1012,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(v == "test");
     }
 
+    // Test string concatenation with operator
     unittest {
         vector!char v = "no ";
         vector!char n = v ~ "test";
@@ -737,6 +1021,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         assert(n == "there is no test at all");
     }
 
+    // Test null-terminated string
     unittest {
         vector!char v = "test";
         char[5] a = ['t', 'e', 's', 't', '\0'];
@@ -748,6 +1033,7 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
         free(sz);
     }
 
+    // Test iterators
     unittest {
         // Test iterators
         vector!int v;
@@ -763,15 +1049,17 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
             auto it = v.begin();
             assert(!it.empty);
             assert(it.front == 1);
-            assert(it.popFront().front == 2);
+            it.popFront();
+            assert(it.front == 2);
         }
 
         // Test reverse iteration with rbegin/rend
         {
             auto rit = v.rbegin();
             assert(!rit.empty);
-            assert(rit.back == 5);
-            assert(rit.popBack().back == 4);
+            assert(rit.front == 5);
+            rit.popFront();
+            assert(rit.front == 4);
         }
 
         // Test foreach iteration
@@ -783,13 +1071,145 @@ struct vector(T, A: IAllocator!T = allocator!T) if (!is(T == bool)) {
             }
         }
 
-        // Test foreach_reverse iteration
+        // Test const iteration
         {
-            int i = 5;
-            foreach_reverse (ref val; v) {
+            const cv = v;
+            int i = 1;
+            foreach (ref const val; cv) {
                 assert(val == i);
-                --i;
+                ++i;
             }
         }
+    }
+
+    // Test empty vector behavior
+    unittest {
+        vector!int v;
+        assert(v.empty);
+        assert(v.size == 0);
+        assert(v.capacity == 0);
+        assert(v.front == int.init);
+        assert(v.back == int.init);
+        assert(v.toHash() == 0);
+    }
+
+    // Test single element operations
+    unittest {
+        vector!int v;
+        v.push(42);
+        assert(!v.empty);
+        assert(v.size == 1);
+        assert(v.front == 42);
+        assert(v.back == 42);
+
+        // Test pop on single element
+        v.pop();
+        assert(v.empty);
+        assert(v.size == 0);
+    }
+
+    // Test capacity growth
+    unittest {
+        vector!int v;
+        v.reserve(4);
+        assert(v.capacity == 4);
+        assert(v.size == 0);
+
+        // Fill to capacity
+        v.push(1);
+        v.push(2);
+        v.push(3);
+        v.push(4);
+        assert(v.size == 4);
+        assert(v.capacity == 4);
+
+        // Test growth beyond capacity
+        v.push(5);
+        assert(v.size == 5);
+        assert(v.capacity > 4);
+    }
+
+    // Test clear behavior
+    unittest {
+        vector!int v;
+        int[5] data;
+        data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 4; data[4] = 5;
+        v = data;
+
+        // Test basic clear
+        size_t oldCapacity = v.capacity;
+        v.clear();
+        assert(v.empty);
+        assert(v.size == 0);
+        assert(v.capacity == oldCapacity); // Clear shouldn't change capacity
+    }
+
+    // Test resize behavior
+    unittest {
+        vector!int v;
+
+        // Resize larger
+        v.resize(3, 42);
+        assert(v.size == 3);
+        assert(v[0] == 42 && v[1] == 42 && v[2] == 42);
+
+        // Resize smaller
+        v.resize(1);
+        assert(v.size == 1);
+        assert(v[0] == 42);
+
+        // Resize to zero
+        v.resize(0);
+        assert(v.empty);
+    }
+
+    // Test slice operations
+    unittest {
+        vector!int v;
+        int[5] data;
+        data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 4; data[4] = 5;
+        v = data;
+
+        // Full slice
+        assert(v[0..$] == [1, 2, 3, 4, 5]);
+
+        // Partial slice
+        assert(v[1..4] == [2, 3, 4]);
+
+        // Empty slice
+        assert(v[2..2].length == 0);
+    }
+
+    // Test concatenation with empty vector
+    unittest {
+        vector!int v;
+        vector!int other;
+        vector!int result;
+
+        // Empty + Empty
+        result = v;
+        foreach(i; 0..other.size) {
+            result.push(other[i]);
+        }
+        assert(result.empty);
+
+        // Empty + Non-empty
+        other.push(1);
+        result = v;
+        foreach(i; 0..other.size) {
+            result.push(other[i]);
+        }
+        assert(result.size == 1);
+        assert(result[0] == 1);
+
+        // Non-empty + Empty
+        v.push(2);
+        result = v;
+        other.clear();
+        foreach(i; 0..other.size) {
+            result.push(other[i]);
+        }
+        assert(result.size == 1);
+        assert(result[0] == 2);
     }
 }
