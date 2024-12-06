@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: (C) 2024 Alisa Lain <al1-ce@null.net>
+// SPDX-License-Identifier: OSL-3.0
+
 module clib.conv;
 // TODO: add separate cast versions for C++ linkage and D classes
 
