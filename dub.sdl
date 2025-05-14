@@ -4,7 +4,12 @@ authors "Alisa Lain"
 copyright "Copyright © 2023, Alisa Lain"
 license "GPL-3.0"
 
-configuration "library" {
+targetType "library"
+sourcePaths "src/"
+importPaths "src/"
+targetPath "bin/"
+
+configuration "library_bc" {
     targetType "library"
     dflags "-betterC"
     sourcePaths "src/"

@@ -5,16 +5,20 @@ module clib.conv;
 // TODO: add separate cast versions for C++ linkage and D classes
 
 /// Interprets F as T (dangerous, use mainly as workaround to bug 21690)
-T reinterpret_cast(T, F)(F t) @nogc nothrow {
+T reinterpret_cast(T, F)(F t) @nogc nothrow if (T.sizeof == F.sizeof) {
     return ( cast(T) cast(void*) t );
 }
 
 /// Downcasts F to T (CAN RETURN NULL IF UNABLE TO DOWNCAST)
-T dynamic_cast(T, F)(F t) @nogc nothrow if (IS_CLASS!T && IS_CLASS!F) {
-    if (_typeid!(F)().is_base_of!(T)()) {
-        return ( cast(T) cast(void*) t );
+T dynamic_cast(T, F)(F t) @nogc nothrow if ((IS_CLASS!T && IS_CLASS!F) || is(T: F)) {
+    version (CLIB_USE_TYPEINFO) {
+        if (_typeid!(F)().is_base_of!(T)()) {
+            return ( cast(T) cast(void*) t );
+        } else {
+            return null;
+        }
     } else {
-        return null;
+        return cast(T) cast(void*) t;
     }
 }
 

@@ -9,7 +9,9 @@ module clib.memory;
 import clib.stdlib: malloc, realloc, free;
 
 mixin template DISABLE_GC() {
+    extern(C) __gshared bool rt_cmdline_enabled = false;
     extern(C) __gshared string[] rt_options = [ "gcopt=disable:1" ];
+    extern(C) void* register_default_gcs();
 }
 
 /++
